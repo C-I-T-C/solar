@@ -3,6 +3,9 @@ import { SceneManager } from './js/sceneManager.js';
 import { QuizController } from './js/quizController.js';
 import { ComparisonManager } from './js/comparisonManager.js';
 
+// Enable Three.js Internal Cache for textures and geometries
+THREE.Cache.enabled = true;
+
 // Loading Screen Logic
 let isLoaded = false;
 let minTimePassed = false;
