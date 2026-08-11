@@ -9,7 +9,7 @@ export class AsteroidBelt {
     const geometry = new THREE.DodecahedronGeometry(1.5, 1); 
     
     // Material (Reuse moon texture for rocky look)
-    const texture = textureLoader.load('/textures/moon.jpg'); 
+    const texture = textureLoader.load('/textures/moon.webp'); 
     const material = new THREE.MeshStandardMaterial({
       map: texture,
       roughness: 0.9,

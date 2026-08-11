@@ -174,7 +174,7 @@ export class ComparisonManager {
       const texLoader = new THREE.TextureLoader();
       cloned.traverse((child) => {
         if (child.isMesh && child.geometry.type === 'RingGeometry') {
-          const ringTex = texLoader.load('/textures/saturn_ring_alpha.png');
+          const ringTex = texLoader.load('/textures/saturn_ring_alpha.webp');
           ringTex.colorSpace = THREE.SRGBColorSpace;
           child.material = new THREE.MeshLambertMaterial({
             map: ringTex,
@@ -183,7 +183,7 @@ export class ComparisonManager {
             color: 0xffffff
           });
         } else if (child.isMesh && child.geometry.type === 'SphereGeometry') {
-          const bodyTex = texLoader.load('/textures/saturn.jpg');
+          const bodyTex = texLoader.load('/textures/saturn.webp');
           bodyTex.colorSpace = THREE.SRGBColorSpace;
           child.material = new THREE.MeshStandardMaterial({
             map: bodyTex,

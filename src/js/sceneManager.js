@@ -145,7 +145,7 @@ export class SceneManager {
 
   setupSkybox() {
     const textureLoader = new THREE.TextureLoader();
-    textureLoader.load('/textures/stars_milky_way.jpg', (texture) => {
+    textureLoader.load('/textures/stars_milky_way.webp', (texture) => {
       texture.colorSpace = THREE.SRGBColorSpace;
       
       const skyboxGeo = new THREE.SphereGeometry(250000, 64, 64);

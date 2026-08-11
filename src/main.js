@@ -24,6 +24,14 @@ THREE.DefaultLoadingManager.onError = function () {
   hideLoaderIfReady();
 };
 
+THREE.DefaultLoadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+  const progressEl = document.getElementById('loading-progress');
+  if (progressEl) {
+    const percent = Math.floor((itemsLoaded / itemsTotal) * 100);
+    progressEl.innerText = percent + '%';
+  }
+};
+
 function hideLoaderIfReady() {
   if (isLoaded && minTimePassed) {
     const loadingScreen = document.getElementById('loading-screen');
