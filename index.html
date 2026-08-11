@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شبیه‌ساز سه‌بعدی منظومه شمسی</title>
+  
+  <!-- Vazirmatn Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+    
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+      <div class="loader-content">
+        <div class="solar-spinner">
+          <div class="sun-core"></div>
+          <div class="orbit-path orbit-1"><div class="planet-dot p-1"></div></div>
+          <div class="orbit-path orbit-2"><div class="planet-dot p-2"></div></div>
+          <div class="orbit-path orbit-3"><div class="planet-dot p-3"></div></div>
+        </div>
+        <div class="loading-text">در حال بارگذاری کیهان...</div>
+        <div class="loading-quote">"گر صبر کنی ز غوره حلوا سازی"</div>
+      </div>
+    </div>
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container"></div>
+  
+  <!-- UI Layer -->
+  <div id="ui-layer">
+    
+    <div class="top-left-controls">
+      <button id="quiz-btn" class="btn primary-btn quiz-btn">کوییز 🧠</button>
+    </div>
+
+    <button id="mobile-menu-toggle" class="mobile-toggle-btn top-toggle">منوها ▲</button>
+    <button id="mobile-time-toggle" class="mobile-toggle-btn bottom-toggle">زمان ▼</button>
+
+    <!-- Side Navigation -->
+    <nav class="side-nav glass-panel">
+      <h2 class="logo gradient-text">منظومه شمسی</h2>
+      <div class="planet-links" id="planet-links">
+        <!-- JS will populate planet quick links here -->
+      </div>
+      <div class="controls-top">
+        <button id="toggle-orbits-btn" class="btn">مخفی‌کردن مدارها</button>
+        <button id="toggle-freecam-btn" class="btn">دوربین آزاد: خاموش</button>
+        <button id="compare-mode-btn" class="btn" style="margin-top: 10px;">مقایسه سیارات ⚖️</button>
+      </div>
+      <div class="about-us">
+        ساخته شده توسط <a href="https://t.me/Alirezaoffice" target="_blank">این</a> و <a href="https://t.me/Modabber3" target="_blank">این</a> و <a href="https://antigravity.google" target="_blank">این</a> با ♥️ برای <a href="https://digiato.com" target="_blank">این</a>
+      </div>
+    </nav>
+
+    <!-- Planet Inspector Modal (Hidden by default) -->
+    <aside id="planet-inspector" class="inspector-drawer glass-panel hidden">
+      <div class="inspector-header">
+        <h2 id="inspector-name-fa" class="gradient-text">نام سیاره</h2>
+        <span id="inspector-name-en">Planet Name</span>
+        <button id="close-inspector-btn" class="btn-icon">بستن</button>
+      </div>
+      <div class="inspector-tabs">
+        <button class="tab-btn active" data-tab="specs">مشخصات</button>
+        <button class="tab-btn" data-tab="bio">درباره</button>
+        <button class="tab-btn" data-tab="trivia">حقایق</button>
+      </div>
+      <div class="inspector-content">
+        <!-- Content will be injected here by JS -->
+        <div id="tab-content" class="tab-body"></div>
+      </div>
+    </aside>
+
+    <!-- Mobile Welcome Modal -->
+    <div id="mobile-welcome-modal" class="glass-panel">
+      <div class="modal-content">
+        <h3>به منظومه شمسی خوش آمدید! 🌌</h3>
+        <p>برای تجربه گرافیک خیره‌کننده‌تر و امکانات کامل‌تر (مثل پرواز آزاد با موس و کیبورد)، پیشنهاد می‌کنیم این وب‌سایت را در مانیتور کامپیوتر باز کنید.</p>
+        <button id="close-mobile-modal-btn" class="primary-btn">ورود به سایت</button>
+      </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quiz-modal" class="glass-panel hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90vw; max-width: 600px; padding: 30px; z-index: 300;">
+      <!-- Close Button -->
+      <button id="close-quiz-btn" class="btn-icon" style="position: absolute; top: 15px; left: 15px;">×</button>
+      
+      <!-- Quiz Game UI -->
+      <div id="quiz-game">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <span id="quiz-progress" style="color: var(--accent-cyan); font-weight: bold; font-size: 1.1rem;">سوال ۱ از ۲۰</span>
+        </div>
+        <h3 id="quiz-question" style="text-align: center; margin-bottom: 30px; line-height: 1.5;">صورت سوال در اینجا قرار می‌گیرد؟</h3>
+        <div id="quiz-options" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Options injected by JS -->
+        </div>
+      </div>
+
+      <!-- Quiz Result UI -->
+      <div id="quiz-result" class="hidden" style="text-align: center; padding: 20px 0;">
+        <h2 class="gradient-text" style="font-size: 2rem; margin-bottom: 20px;">پایان کوییز!</h2>
+        <div id="quiz-score" style="margin-bottom: 30px;">
+          <!-- Score injected by JS -->
+        </div>
+        <button id="restart-quiz-btn" class="primary-btn" style="font-size: 1.1rem; padding: 12px 30px;">شروع مجدد 🔄</button>
+      </div>
+    </div>
+
+    <!-- Bottom Time Machine Controls (Small centered panel) -->
+    <footer class="time-machine glass-panel">
+      <div class="time-machine-header">
+        <span id="current-date-display">۱ فروردین ۱۴۰۰</span>
+      </div>
+      <div class="time-controls">
+        <button id="play-pause-btn" class="btn-icon">مکث</button>
+        
+        <div class="speed-stepper" style="direction: ltr;">
+          <button id="speed-down-btn" class="btn-icon">❮</button>
+          <span id="current-speed-display" class="speed-display" style="direction: rtl;">۱ ماه/ثانیه</span>
+          <button id="speed-up-btn" class="btn-icon">❯</button>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Lonely Text -->
+    <div id="lonely-text" class="lonely-text hidden">خیلی تنهاییم مگه نه؟</div>
+
+    <!-- Pluto Easter Egg Tooltip -->
+    <div id="pluto-tooltip" class="pluto-tooltip hidden">پس من چی؟ 🥺</div>
+    
+    <!-- Comparison Mode Overlay -->
+    <div id="comparison-overlay" class="hidden">
+      <div class="comparison-header">
+        <button id="close-comparison-btn" class="btn-icon">×</button>
+        <h2 class="gradient-text">حالت مقایسه</h2>
+      </div>
+      
+      <!-- Container for the 3D split screen -->
+      <div id="comparison-canvas-container"></div>
+      
+      <!-- Divider -->
+      <div class="comparison-divider"></div>
+
+      <!-- Left Panel UI -->
+      <div class="comparison-panel left-panel">
+        <button id="compare-prev-left" class="btn-icon nav-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="comparison-info">
+          <h2 id="compare-name-left" class="compare-title">Venus</h2>
+          <div class="compare-stats">
+            <span class="stat-type">نوع <span id="compare-type-left" class="highlight">TERRESTRIAL</span></span>
+            <span class="stat-divider">|</span>
+            <span class="stat-radius">شعاع <span id="compare-radius-left" class="highlight-value">3760</span> کیلومتر</span>
+          </div>
+        </div>
+        <button id="compare-next-left" class="btn-icon nav-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+
+      <!-- Right Panel UI -->
+      <div class="comparison-panel right-panel">
+        <button id="compare-prev-right" class="btn-icon nav-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="comparison-info">
+          <h2 id="compare-name-right" class="compare-title">Mercury</h2>
+          <div class="compare-stats">
+            <span class="stat-type">نوع <span id="compare-type-right" class="highlight">TERRESTRIAL</span></span>
+            <span class="stat-divider">|</span>
+            <span class="stat-radius">شعاع <span id="compare-ratio-right" class="highlight-value">0.40</span> × <span id="compare-base-name">VENUS</span></span>
+          </div>
+        </div>
+        <button id="compare-next-right" class="btn-icon nav-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

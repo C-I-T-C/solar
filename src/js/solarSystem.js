@@ -1,0 +1,577 @@
+import * as THREE from 'three';
+import { celestialData } from './celestialData.js';
+
+export class SolarSystem {
+  constructor(scene) {
+    this.scene = scene;
+    this.textureLoader = new THREE.TextureLoader();
+    this.planets = {}; // Store planet meshes for animation
+    
+    // Scale factors for visual mode
+    this.visualRadii = {
+      sun: 100,
+      mercury: 6,
+      venus: 12,
+      earth: 13,
+      moon: 3,
+      mars: 8,
+      jupiter: 45,
+      saturn: 38,
+      uranus: 22,
+      neptune: 21,
+      pluto: 4,
+      io: 1.5,
+      europa: 1.3,
+      ganymede: 2.1,
+      callisto: 1.9,
+      titan: 2.0
+    };
+
+    // Distances from sun for visual mode
+    this.visualDistances = {
+      sun: 0,
+      mercury: 200,
+      venus: 350,
+      earth: 550,
+      moon: 39,
+      mars: 750,
+      jupiter: 1200,
+      saturn: 2100,
+      uranus: 2400,
+      neptune: 2700,
+      pluto: 3000,
+      io: 60,
+      europa: 90,
+      ganymede: 140,
+      callisto: 190,
+      titan: 120
+    };
+
+    // Realistic scale data (1 AU = 3000 units for distance to fit in float precision safely)
+    const AU = 3000;
+    this.realDistances = {
+      sun: 0,
+      mercury: 0.387 * AU,
+      venus: 0.723 * AU,
+      earth: 1.0 * AU,
+      moon: 0.00257 * AU * 150, // Scaled up in real mode so it is visible relative to earth
+      mars: 1.524 * AU,
+      jupiter: 5.203 * AU,
+      saturn: 9.537 * AU,
+      uranus: 19.191 * AU,
+      neptune: 30.069 * AU,
+      pluto: 39.482 * AU,
+      io: 0.0028 * AU * 150, // Scaled up in real mode so they are visible relative to planet
+      europa: 0.0044 * AU * 150,
+      ganymede: 0.0071 * AU * 150,
+      callisto: 0.0125 * AU * 150,
+      titan: 0.0081 * AU * 150
+    };
+
+    // Realistic radii relative to Earth = 1.0, scaled down so Earth = 0.127 units (which matches 6371km / 149.6m km * 3000)
+    const R_earth = 0.1277;
+    this.realRadii = {
+      sun: 109.2 * R_earth,
+      mercury: 0.383 * R_earth,
+      venus: 0.950 * R_earth,
+      earth: 1.0 * R_earth,
+      moon: 0.272 * R_earth,
+      mars: 0.532 * R_earth,
+      jupiter: 10.97 * R_earth,
+      saturn: 9.14 * R_earth,
+      uranus: 3.98 * R_earth,
+      neptune: 3.86 * R_earth,
+      pluto: 0.186 * R_earth,
+      io: 0.036 * R_earth,
+      europa: 0.031 * R_earth,
+      ganymede: 0.052 * R_earth,
+      callisto: 0.048 * R_earth,
+      titan: 0.051 * R_earth
+    };
+
+    this.activeDistances = this.visualDistances;
+    this.isRealisticScale = false;
+
+    // Physics data (orbital period, rotation period, Mean Longitude L0, offset, tilt, eccentricity e, Longitude of perihelion w)
+    this.physicsData = {
+      mercury: { orbitDays: 87.97, rotateDays: 58.646, L0: 252.25, offset: 0, tilt: 0.034, e: 0.2056, w: 77.45 },
+      venus: { orbitDays: 224.70, rotateDays: 243.025, L0: 181.98, offset: 0, tilt: 177.36, e: 0.0067, w: 131.53 },
+      earth: { orbitDays: 365.25, rotateDays: 0.997269, L0: 100.46, offset: 270, tilt: 23.44, e: 0.0167, w: 102.94 },
+      moon: { orbitDays: 27.32, rotateDays: 27.321, L0: 0, offset: 0, tilt: 1.54, e: 0.0549, w: 0 }, 
+      mars: { orbitDays: 686.98, rotateDays: 1.02595, L0: 355.45, offset: 0, tilt: 25.19, e: 0.0934, w: 336.04 },
+      jupiter: { orbitDays: 4332.59, rotateDays: 0.4135, L0: 34.40, offset: 0, tilt: 3.13, e: 0.0489, w: 14.75 },
+      saturn: { orbitDays: 10759.22, rotateDays: 0.444, L0: 50.08, offset: 0, tilt: 26.73, e: 0.0565, w: 92.43 },
+      uranus: { orbitDays: 30685.4, rotateDays: 0.718, L0: 313.23, offset: 0, tilt: 97.77, e: 0.0463, w: 170.96 },
+      neptune: { orbitDays: 60189.0, rotateDays: 0.671, L0: 304.88, offset: 0, tilt: 28.32, e: 0.0085, w: 44.97 },
+      pluto: { orbitDays: 90560.0, rotateDays: 6.38, L0: 238.92, offset: 0, tilt: 122.53, e: 0.2488, w: 224.06 },
+      io: { orbitDays: 1.77, rotateDays: 1.77, L0: 0, offset: 0, tilt: 0, e: 0.0041, w: 0 },
+      europa: { orbitDays: 3.55, rotateDays: 3.55, L0: 90, offset: 0, tilt: 0, e: 0.009, w: 0 },
+      ganymede: { orbitDays: 7.15, rotateDays: 7.15, L0: 180, offset: 0, tilt: 0, e: 0.0013, w: 0 },
+      callisto: { orbitDays: 16.69, rotateDays: 16.69, L0: 270, offset: 0, tilt: 0, e: 0.0074, w: 0 },
+      titan: { orbitDays: 15.94, rotateDays: 15.94, L0: 0, offset: 0, tilt: 0, e: 0.0288, w: 0 }
+    };
+
+    this.orbitsVisible = true;
+    this.orbitLines = [];
+
+    this.createSun();
+    this.createPlanets();
+  }
+
+  setOrbitsVisible(isVisible) {
+    this.orbitsVisible = isVisible;
+    Object.values(this.planets).forEach(p => {
+      if (p.trail) p.trail.visible = isVisible;
+    });
+  }
+
+  setScaleMode(isRealistic) {
+    this.isRealisticScale = isRealistic;
+    this.activeDistances = isRealistic ? this.realDistances : this.visualDistances;
+    
+    Object.keys(this.planets).forEach(id => {
+      const p = this.planets[id];
+      const targetRadius = isRealistic ? this.realRadii[id] : this.visualRadii[id];
+      const origRadius = this.visualRadii[id]; 
+      const scale = targetRadius / origRadius;
+      
+      p.mesh.scale.set(scale, scale, scale);
+      
+      if (p.trail) {
+        const a = this.activeDistances[id] || 1;
+        p.trail.scale.set(a, a, a);
+      }
+    });
+  }
+
+  setupUI() {
+    const btn = document.getElementById('toggle-orbits-btn');
+    if(btn) {
+      btn.addEventListener('click', () => {
+        this.orbitsVisible = !this.orbitsVisible;
+        this.orbitLines.forEach(line => line.visible = this.orbitsVisible);
+        btn.innerText = this.orbitsVisible ? 'مخفی‌کردن مدارها' : 'نمایش مدارها';
+      });
+    }
+  }
+
+  loadTex(name) {
+    const tex = this.textureLoader.load(`/textures/${name}`);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  createSun() {
+    const geo = new THREE.SphereGeometry(this.visualRadii.sun, 64, 64);
+    const mat = new THREE.MeshBasicMaterial({
+      map: this.loadTex('sun.jpg')
+    });
+    // Boost color intensity above 1.0 so it triggers the Bloom threshold!
+    mat.color.setScalar(1.5);
+    this.sun = new THREE.Mesh(geo, mat);
+    this.scene.add(this.sun);
+    this.planets.sun = { mesh: this.sun, id: 'sun' };
+  }
+
+  createPlanets() {
+    // Mercury
+    this.createSimplePlanet('mercury', 'mercury.jpg');
+    
+    // Venus
+    const venusGeo = new THREE.SphereGeometry(this.visualRadii.venus, 64, 64);
+    const venusMat = new THREE.MeshStandardMaterial({
+      map: this.loadTex('venus_surface.jpg'),
+      roughness: 0.8
+    });
+    const venusMesh = new THREE.Mesh(venusGeo, venusMat);
+    venusMesh.castShadow = true;
+    venusMesh.receiveShadow = true;
+    
+    // Venus Atmosphere
+    const vAtmoGeo = new THREE.SphereGeometry(this.visualRadii.venus * 1.02, 64, 64);
+    const vAtmoMat = new THREE.MeshStandardMaterial({
+      map: this.loadTex('venus_atmosphere.jpg'),
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending
+    });
+    const venusAtmoMesh = new THREE.Mesh(vAtmoGeo, vAtmoMat);
+    venusMesh.add(venusAtmoMesh);
+    
+    this.addPlanetToScene('venus', venusMesh);
+    this.planets.venus.clouds = venusAtmoMesh;
+
+    // Earth
+    const earthGeo = new THREE.SphereGeometry(this.visualRadii.earth, 64, 64);
+    const earthMat = new THREE.MeshPhongMaterial({
+      map: this.loadTex('earth_daymap.jpg'),
+      specularMap: this.textureLoader.load('/textures/earth_specular_map.png'),
+      normalMap: this.textureLoader.load('/textures/earth_normal_map.png'),
+      specular: new THREE.Color(0x333333),
+      shininess: 15
+    });
+    const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+    earthMesh.castShadow = true;
+    earthMesh.receiveShadow = true;
+    
+    // Earth Clouds
+    const cloudGeo = new THREE.SphereGeometry(this.visualRadii.earth * 1.015, 64, 64);
+    const cloudMat = new THREE.MeshLambertMaterial({
+      map: this.loadTex('earth_clouds.jpg'),
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide
+    });
+    const earthClouds = new THREE.Mesh(cloudGeo, cloudMat);
+    earthMesh.add(earthClouds);
+    
+    // Earth Night Map (Bonus feature using custom shader or additive blend, for now basic)
+    // To keep it clean in Three.js without custom shaders, we'll rely on the day map and lights.
+
+    this.addPlanetToScene('earth', earthMesh);
+    this.planets.earth.clouds = earthClouds;
+
+    // Earth's Moon
+    this.createMoon('moon', 'moon.jpg', 'earth');
+
+    // Mars
+    this.createSimplePlanet('mars', 'mars.jpg');
+
+    // Jupiter
+    this.createSimplePlanet('jupiter', 'jupiter.jpg');
+    this.createMoon('io', 'moon.jpg', 'jupiter');
+    this.planets.io.mesh.material.color.setHex(0xffffaa);
+    this.createMoon('europa', 'moon.jpg', 'jupiter');
+    this.planets.europa.mesh.material.color.setHex(0xddddcc);
+    this.createMoon('ganymede', 'moon.jpg', 'jupiter');
+    this.planets.ganymede.mesh.material.color.setHex(0xaabbbb);
+    this.createMoon('callisto', 'moon.jpg', 'jupiter');
+    this.planets.callisto.mesh.material.color.setHex(0x8899aa);
+
+    // Saturn
+    const saturnGeo = new THREE.SphereGeometry(this.visualRadii.saturn, 64, 64);
+    const saturnMat = new THREE.MeshStandardMaterial({
+      map: this.loadTex('saturn.jpg'),
+      roughness: 0.7
+    });
+    
+    const innerRing = this.visualRadii.saturn * 1.2;
+    const outerRing = this.visualRadii.saturn * 2.2;
+    const ringTex = this.textureLoader.load('/textures/saturn_ring_alpha.png');
+    
+    saturnMat.onBeforeCompile = (shader) => {
+      shader.uniforms.sunLocalPos = { value: new THREE.Vector3() };
+      shader.uniforms.innerRing = { value: innerRing };
+      shader.uniforms.outerRing = { value: outerRing };
+      shader.uniforms.ringTexture = { value: ringTex };
+      
+      shader.vertexShader = `
+        varying vec3 vLocalPos;
+        ${shader.vertexShader}
+      `.replace(
+        `#include <begin_vertex>`,
+        `
+        #include <begin_vertex>
+        vLocalPos = position;
+        `
+      );
+      
+      shader.fragmentShader = `
+        uniform vec3 sunLocalPos;
+        uniform float innerRing;
+        uniform float outerRing;
+        uniform sampler2D ringTexture;
+        varying vec3 vLocalPos;
+        ${shader.fragmentShader}
+      `.replace(
+        `#include <dithering_fragment>`,
+        `
+        #include <dithering_fragment>
+        
+        vec3 dir = normalize(sunLocalPos - vLocalPos);
+        float t = -vLocalPos.y / dir.y;
+        
+        if (t > 0.0) {
+            vec3 p = vLocalPos + t * dir;
+            float d = length(p.xz);
+            if (d > innerRing && d < outerRing) {
+                float uvX = (d - innerRing) / (outerRing - innerRing);
+                // Sample the ring texture to get the gap patterns
+                float ringAlpha = texture2D(ringTexture, vec2(uvX, 0.5)).a;
+                gl_FragColor.rgb *= (1.0 - 0.75 * ringAlpha);
+            }
+        }
+        `
+      );
+      saturnMat.userData.shader = shader;
+    };
+    
+    const saturnMesh = new THREE.Mesh(saturnGeo, saturnMat);
+    
+    // Saturn Rings
+    const ringGeo = new THREE.RingGeometry(innerRing, outerRing, 64);
+    
+    // Ring textures need proper UV mapping adjustments in Three.js
+    const pos = ringGeo.attributes.position;
+    const v3 = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      v3.fromBufferAttribute(pos, i);
+      ringGeo.attributes.uv.setXY(i, v3.length() < (innerRing + (outerRing-innerRing)/2) ? 0 : 1, 1);
+    }
+    
+    // `ringTex` is already loaded above for the saturn shadow shader
+    const ringMat = new THREE.MeshLambertMaterial({
+      map: ringTex,
+      transparent: true,
+      side: THREE.DoubleSide,
+      color: 0xffffff
+    });
+    
+    // Custom Shader for perfect physical ring shadow without FPS drops
+    ringMat.onBeforeCompile = (shader) => {
+      shader.uniforms.planetWorldPos = { value: new THREE.Vector3() };
+      shader.uniforms.planetRadius = { value: this.visualRadii.saturn };
+      
+      shader.vertexShader = `
+        varying vec3 vWorldPos;
+        ${shader.vertexShader}
+      `.replace(
+        `#include <worldpos_vertex>`,
+        `
+        #include <worldpos_vertex>
+        vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+        `
+      );
+      
+      shader.fragmentShader = `
+        uniform vec3 planetWorldPos;
+        uniform float planetRadius;
+        varying vec3 vWorldPos;
+        ${shader.fragmentShader}
+      `.replace(
+        `#include <dithering_fragment>`,
+        `
+        #include <dithering_fragment>
+        
+        vec3 rayDir = normalize(vWorldPos);
+        float distToRay = length(cross(rayDir, planetWorldPos));
+        bool isBehind = dot(vWorldPos, rayDir) > dot(planetWorldPos, rayDir);
+        
+        if (distToRay < planetRadius && isBehind) {
+            float shadowFactor = smoothstep(planetRadius * 0.9, planetRadius, distToRay);
+            gl_FragColor.rgb *= (0.1 + 0.9 * shadowFactor);
+        }
+        `
+      );
+      
+      ringMat.userData.shader = shader; // save reference to update uniforms
+    };
+
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = Math.PI / 2; // Flat on XZ plane
+
+    saturnMesh.add(ringMesh);
+
+    this.addPlanetToScene('saturn', saturnMesh);
+    this.planets.saturn.ringMat = ringMat;
+    
+    // Saturn's Titan
+    this.createMoon('titan', 'venus_atmosphere.jpg', 'saturn');
+    this.planets.titan.mesh.material.color.setHex(0xffaa55);
+
+    // Uranus
+    this.createSimplePlanet('uranus', 'uranus.jpg');
+    // Uranus orbits on its side
+    this.planets.uranus.mesh.rotation.z = Math.PI / 2; 
+
+    // Neptune
+    this.createSimplePlanet('neptune', 'neptune.jpg');
+    
+    // Pluto (Easter Egg)
+    this.createSimplePlanet('pluto', 'moon.jpg'); 
+    if (this.planets.pluto) {
+      // Tint it brownish-red to look like Pluto
+      this.planets.pluto.mesh.material.color.setHex(0xd2b48c);
+    }
+  }
+
+  createSimplePlanet(id, textureName) {
+    const geo = new THREE.SphereGeometry(this.visualRadii[id], 64, 64);
+    const mat = new THREE.MeshStandardMaterial({
+      map: this.loadTex(textureName),
+      roughness: 0.8
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.addPlanetToScene(id, mesh);
+  }
+
+  createMoon(id, textureName, parentId) {
+    const geo = new THREE.SphereGeometry(this.visualRadii[id], 32, 32);
+    const mat = new THREE.MeshStandardMaterial({
+      map: this.loadTex(textureName),
+      roughness: 0.9
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    
+    const pivot = new THREE.Group();
+    if(this.planets[parentId]) {
+        this.planets[parentId].planetContainer.add(pivot);
+    }
+    
+    const moonContainer = new THREE.Group();
+    pivot.add(moonContainer);
+    moonContainer.add(mesh);
+    
+    const pData = this.physicsData[id];
+    
+    this.planets[id] = { mesh, pivot, moonContainer, id, trail: null };
+  }
+
+  addPlanetToScene(id, mesh) {
+    const pData = this.physicsData[id];
+    
+    // Container for position and orbital rotation (faces away from sun)
+    const planetContainer = new THREE.Group();
+    this.scene.add(planetContainer);
+    
+    // Tilt group for axial tilt
+    const tiltGroup = new THREE.Group();
+    tiltGroup.rotation.z = (pData && pData.tilt) ? (pData.tilt * Math.PI / 180) : 0;
+    
+    tiltGroup.add(mesh);
+    planetContainer.add(tiltGroup);
+    
+    // Draw full elliptical orbital trail
+    if (id !== 'sun') {
+      const segments = 256;
+      const points = new Float32Array((segments + 1) * 3);
+      
+      const e = (pData && pData.e) ? pData.e : 0;
+      const w_rad = (pData && pData.w) ? (pData.w * Math.PI / 180) : 0;
+      
+      for (let i = 0; i <= segments; i++) {
+        const E_anomaly = (i / segments) * Math.PI * 2;
+        const x_orb = Math.cos(E_anomaly) - e;
+        const z_orb = Math.sqrt(1 - e*e) * Math.sin(E_anomaly);
+        
+        const x = x_orb * Math.cos(w_rad) - z_orb * Math.sin(w_rad);
+        const z = x_orb * Math.sin(w_rad) + z_orb * Math.cos(w_rad);
+        
+        points[i*3] = x;
+        points[i*3+1] = 0;
+        points[i*3+2] = z;
+      }
+      
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(points, 3));
+      const material = new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.3 });
+      const trail = new THREE.Line(geometry, material);
+      
+      const a = this.activeDistances[id] || 1;
+      trail.scale.set(a, a, a);
+      this.scene.add(trail);
+      trail.visible = this.orbitsVisible;
+      
+      this.planets[id] = { mesh, planetContainer, tiltGroup, id, trail };
+      this.orbitLines.push(trail);
+    } else {
+      this.planets[id] = { mesh, planetContainer, tiltGroup, id };
+    }
+  }
+
+  solveKepler(M, e) {
+    let E = M;
+    for (let i = 0; i < 5; i++) {
+      E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+    }
+    return E;
+  }
+
+  update(deltaTime, simulatedDays) {
+    Object.values(this.planets).forEach(p => {
+      const pData = this.physicsData[p.id];
+      let orbitalAngle = 0;
+
+      if (p.id !== 'sun' && pData) {
+        const L0_rad = (pData.L0 || 0) * Math.PI / 180;
+        const w_rad = (pData.w || 0) * Math.PI / 180;
+        const e = pData.e || 0;
+        const a = this.activeDistances[p.id] || 1;
+        
+        const meanMotion = (Math.PI * 2) / pData.orbitDays;
+        const M = L0_rad - w_rad + meanMotion * simulatedDays;
+        
+        const E_anomaly = this.solveKepler(M, e);
+        
+        const x_orb = Math.cos(E_anomaly) - e;
+        const z_orb = Math.sqrt(1 - e*e) * Math.sin(E_anomaly);
+        
+        const x_dir = x_orb * Math.cos(w_rad) - z_orb * Math.sin(w_rad);
+        const z_dir = x_orb * Math.sin(w_rad) + z_orb * Math.cos(w_rad);
+        
+        orbitalAngle = Math.atan2(z_dir, x_dir);
+
+        if (p.pivot) {
+          p.moonContainer.position.x = x_dir * a;
+          p.moonContainer.position.z = z_dir * a;
+        } else {
+          p.planetContainer.position.x = x_dir * a;
+          p.planetContainer.position.z = z_dir * a;
+        }
+
+        // Axial rotation
+        if (p.id === 'earth') {
+          // For Earth, calculate rotation exactly based on UTC time of day to ensure precise day/night sync
+          // J2000 + simulatedDays gives the current simulated date
+          // 2000-01-01 12:00:00 UTC is J2000.
+          // Fractional days since J2000 (0.5 at 00:00, 0.0 at 12:00)
+          const T = (simulatedDays + 0.5) % 1.0; 
+          
+          // mesh.rotation.y = orbitalAngle + T * 2PI + PI/2 aligns Greenwich (at -Z) perfectly
+          p.mesh.rotation.y = orbitalAngle + (T * Math.PI * 2) + (Math.PI / 2);
+        } else {
+          const timeRotation = (simulatedDays / pData.rotateDays) * Math.PI * 2;
+          const textureOffsetRad = (pData.offset || 0) * (Math.PI / 180);
+          p.mesh.rotation.y = timeRotation + textureOffsetRad;
+        }
+      }
+      
+      if (p.clouds && pData) {
+        if (p.id === 'earth') {
+          const T = (simulatedDays + 0.5) % 1.0;
+          // Add a tiny offset for cloud drift
+          const drift = (simulatedDays * 0.05) % (Math.PI * 2);
+          p.clouds.rotation.y = orbitalAngle + (T * Math.PI * 2) + (Math.PI / 2) + drift;
+        } else {
+          const timeRotation = (simulatedDays / (pData.rotateDays * 0.9)) * Math.PI * 2;
+          const textureOffsetRad = (pData.offset || 0) * (Math.PI / 180);
+          p.clouds.rotation.y = timeRotation + textureOffsetRad;
+        }
+      }
+      
+      // Update custom shadow shader uniform for Saturn's rings
+      if (p.id === 'saturn') {
+        if (p.ringMat && p.ringMat.userData.shader) {
+          p.ringMat.userData.shader.uniforms.planetWorldPos.value.copy(p.planetContainer.position);
+        }
+        if (p.mesh.material.userData.shader) {
+          // Calculate Sun's position in Saturn's local space
+          const sunLocal = new THREE.Vector3(0, 0, 0);
+          p.mesh.worldToLocal(sunLocal);
+          p.mesh.material.userData.shader.uniforms.sunLocalPos.value.copy(sunLocal);
+        }
+      }
+      
+      if (p.id === 'sun') {
+        // Sun rotates once every ~27 Earth days.
+        // Use simulatedDays so it pauses when the simulation is paused and scales with time speed.
+        p.mesh.rotation.y = (simulatedDays / 27.0) * Math.PI * 2;
+      }
+    });
+  }
+}

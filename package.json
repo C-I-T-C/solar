@@ -1,0 +1,19 @@
+{
+  "name": "persian-solar-system",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "three": "^0.164.0",
+    "gsap": "^3.12.5",
+    "lucide": "^0.370.0"
+  }
+}
