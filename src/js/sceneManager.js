@@ -26,26 +26,35 @@ export class SceneManager {
     this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 0.1, 500000);
     this.camera.position.set(0, 1000, 3000); // Initial far view
 
+    const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    this.isMobile = isMobile;
+
     // Setup Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: !isMobile, alpha: true });
     this.renderer.setSize(this.width, this.height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Force pixel ratio to 1 on mobile for raw performance
+    this.renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
     this.renderer.shadowMap.enabled = false;
     this.container.appendChild(this.renderer.domElement);
 
     // Setup Post-Processing (Mild Bloom)
-    const renderScene = new RenderPass(this.scene, this.camera);
-    // params: resolution, strength, radius, threshold
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(this.width, this.height), 0.35, 0.4, 0.9);
+    // Effect Composer is very heavy on mobile GPUs, so we skip it to guarantee 60fps
+    this.useComposer = !isMobile;
     
-    this.composer = new EffectComposer(this.renderer);
-    this.composer.addPass(renderScene);
-    this.composer.addPass(bloomPass);
-    
-    const outputPass = new OutputPass();
-    this.composer.addPass(outputPass);
+    if (this.useComposer) {
+      const renderScene = new RenderPass(this.scene, this.camera);
+      // params: resolution, strength, radius, threshold
+      const bloomPass = new UnrealBloomPass(new THREE.Vector2(this.width, this.height), 0.35, 0.4, 0.9);
+      
+      this.composer = new EffectComposer(this.renderer);
+      this.composer.addPass(renderScene);
+      this.composer.addPass(bloomPass);
+      
+      const outputPass = new OutputPass();
+      this.composer.addPass(outputPass);
+    }
 
     // Setup Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -107,8 +116,9 @@ export class SceneManager {
     this.setupLighting();
     this.setupSkybox();
     
-    // Instantiate Asteroids
-    this.asteroidBelt = new AsteroidBelt(this.scene, this.solarSystem, 850, 1100, 4000);
+    // Instantiate Asteroids (reduce geometry heavily on mobile)
+    const asteroidCount = this.isMobile ? 1000 : 4000;
+    this.asteroidBelt = new AsteroidBelt(this.scene, this.solarSystem, 850, 1100, asteroidCount);
 
     this.timeEngine = new TimeEngine(); 
     // Pass entire SceneManager instance
@@ -489,7 +499,11 @@ export class SceneManager {
       }
     }
 
-    this.composer.render();
+    if (this.useComposer) {
+      this.composer.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 }
 
