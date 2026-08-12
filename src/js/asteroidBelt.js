@@ -1,15 +1,18 @@
 import * as THREE from 'three';
 
 export class AsteroidBelt {
-  constructor(scene, textureLoader, innerRadius, outerRadius, count) {
+  constructor(scene, solarSystem, innerRadius, outerRadius, count) {
     this.scene = scene;
+    this.solarSystem = solarSystem;
+    this.innerRadius = innerRadius;
+    this.outerRadius = outerRadius;
     this.count = count;
     
     // Geometry
     const geometry = new THREE.DodecahedronGeometry(1.5, 1); 
     
     // Material (Reuse moon texture for rocky look)
-    const texture = textureLoader.load('/textures/moon.webp'); 
+    const texture = this.solarSystem.loadTex('moon.webp'); 
     const material = new THREE.MeshStandardMaterial({
       map: texture,
       roughness: 0.9,

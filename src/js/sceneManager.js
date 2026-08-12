@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -95,16 +96,19 @@ export class SceneManager {
       }
     });
     
-    this.setupLighting();
-    this.setupSkybox();
+    this.ktx2Loader = new KTX2Loader()
+      .setTranscoderPath('/basis/')
+      .detectSupport(this.renderer);
 
     // Initialize Physics, Time & UI
     // Solar System & Data
-    this.solarSystem = new SolarSystem(this.scene);
+    this.solarSystem = new SolarSystem(this.scene, this.ktx2Loader);
+
+    this.setupLighting();
+    this.setupSkybox();
     
     // Instantiate Asteroids
-    const texLoader = new THREE.TextureLoader();
-    this.asteroidBelt = new AsteroidBelt(this.scene, texLoader, 850, 1100, 4000);
+    this.asteroidBelt = new AsteroidBelt(this.scene, this.solarSystem, 850, 1100, 4000);
 
     this.timeEngine = new TimeEngine(); 
     // Pass entire SceneManager instance
@@ -144,22 +148,18 @@ export class SceneManager {
   }
 
   setupSkybox() {
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.load('/textures/stars_milky_way.webp', (texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      
-      const skyboxGeo = new THREE.SphereGeometry(250000, 64, 64);
-      // Removed scale(-1) because BackSide already renders the inside
-      
-      const skyboxMat = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.BackSide,
-        depthWrite: false
-      });
-      
-      const skybox = new THREE.Mesh(skyboxGeo, skyboxMat);
-      this.scene.add(skybox);
+    const texture = this.solarSystem.loadTex('stars_milky_way.webp');
+    
+    const skyboxGeo = new THREE.SphereGeometry(250000, 64, 64);
+    
+    const skyboxMat = new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.BackSide,
+      depthWrite: false
     });
+    
+    const skybox = new THREE.Mesh(skyboxGeo, skyboxMat);
+    this.scene.add(skybox);
   }
 
   setupRaycaster() {

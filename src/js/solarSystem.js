@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { celestialData } from './celestialData.js';
 
 export class SolarSystem {
-  constructor(scene) {
+  constructor(scene, ktx2Loader) {
     this.scene = scene;
     this.textureLoader = new THREE.TextureLoader();
+    this.ktx2Loader = ktx2Loader;
     this.planets = {}; // Store planet meshes for animation
     
     // Scale factors for visual mode
@@ -191,8 +192,38 @@ export class SolarSystem {
   }
 
   loadTex(name) {
-    const tex = this.textureLoader.load(`/textures/${name}`);
+    const baseName = name.substring(0, name.lastIndexOf('.'));
+    // Disable KTX2 for Saturn's ring alpha texture because ETC1S compression can corrupt its delicate alpha-to-RGB gradient
+    const useKtx2 = this.ktx2Loader != null && !name.includes('saturn_ring_alpha');
+    const targetExt = useKtx2 ? '.ktx2' : '.webp';
+    
+    // ALWAYS use TextureLoader for the initial low-res image because it synchronously returns a Texture 
+    // object and seamlessly hooks into THREE.DefaultLoadingManager for the loading screen.
+    const tex = this.textureLoader.load(`/textures/lowres/${baseName}.webp`);
     tex.colorSpace = THREE.SRGBColorSpace;
+    
+    // Delay high-res loading slightly to ensure smooth startup animation
+    setTimeout(() => {
+      if (useKtx2) {
+        this.ktx2Loader.load(`/textures/hires/${baseName}${targetExt}`, (highResTex) => {
+          highResTex.colorSpace = THREE.SRGBColorSpace;
+          tex.dispose(); // Free the old low-res WebGL texture memory
+          tex.copy(highResTex);
+          tex.isCompressedTexture = true; // Ensure renderer recognizes it as compressed
+          tex.needsUpdate = true;
+        });
+      } else {
+        const bgLoader = new THREE.TextureLoader(new THREE.LoadingManager());
+        bgLoader.load(`/textures/hires/${baseName}.webp`, (highResTex) => {
+          highResTex.colorSpace = THREE.SRGBColorSpace;
+          tex.dispose();
+          tex.image = highResTex.image;
+          if (highResTex.source) tex.source = highResTex.source;
+          tex.needsUpdate = true;
+        });
+      }
+    }, 800);
+
     return tex;
   }
 
@@ -240,8 +271,8 @@ export class SolarSystem {
     const earthGeo = new THREE.SphereGeometry(this.visualRadii.earth, 64, 64);
     const earthMat = new THREE.MeshPhongMaterial({
       map: this.loadTex('earth_daymap.webp'),
-      specularMap: this.textureLoader.load('/textures/earth_specular_map.webp'),
-      normalMap: this.textureLoader.load('/textures/earth_normal_map.webp'),
+      specularMap: this.loadTex('earth_specular_map.webp'),
+      normalMap: this.loadTex('earth_normal_map.webp'),
       specular: new THREE.Color(0x333333),
       shininess: 15
     });
@@ -291,7 +322,7 @@ export class SolarSystem {
     
     const innerRing = this.visualRadii.saturn * 1.2;
     const outerRing = this.visualRadii.saturn * 2.2;
-    const ringTex = this.textureLoader.load('/textures/saturn_ring_alpha.webp');
+    const ringTex = this.loadTex('saturn_ring_alpha.webp');
     
     saturnMat.onBeforeCompile = (shader) => {
       shader.uniforms.sunLocalPos = { value: new THREE.Vector3() };

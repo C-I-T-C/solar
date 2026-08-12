@@ -171,11 +171,9 @@ export class ComparisonManager {
     
     // Fix for Saturn: The custom shaders rely on solar system world positions which break in comparison mode
     if (id === 'saturn') {
-      const texLoader = new THREE.TextureLoader();
       cloned.traverse((child) => {
         if (child.isMesh && child.geometry.type === 'RingGeometry') {
-          const ringTex = texLoader.load('/textures/saturn_ring_alpha.webp');
-          ringTex.colorSpace = THREE.SRGBColorSpace;
+          const ringTex = this.solarSystem.loadTex('saturn_ring_alpha.webp');
           child.material = new THREE.MeshLambertMaterial({
             map: ringTex,
             transparent: true,
@@ -183,8 +181,7 @@ export class ComparisonManager {
             color: 0xffffff
           });
         } else if (child.isMesh && child.geometry.type === 'SphereGeometry') {
-          const bodyTex = texLoader.load('/textures/saturn.webp');
-          bodyTex.colorSpace = THREE.SRGBColorSpace;
+          const bodyTex = this.solarSystem.loadTex('saturn.webp');
           child.material = new THREE.MeshStandardMaterial({
             map: bodyTex,
             roughness: 0.7
