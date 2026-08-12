@@ -241,6 +241,9 @@ export class SolarSystem {
       for (let i = 0; i < uv.count; i++) {
         uv.setY(i, 1 - uv.getY(i));
       }
+      // CRITICAL: Compute tangents AFTER modifying UVs to prevent normal map artifacts (zig-zag shading) at the poles.
+      // This bypasses the fragment shader's dFdy singularity.
+      geo.computeTangents();
     };
     
     const highGeo = new THREE.SphereGeometry(radius, segments, segments);
