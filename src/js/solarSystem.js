@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import { celestialData } from './celestialData.js';
 
 export class SolarSystem {
-  constructor(scene, ktx2Loader) {
+  constructor(scene, ktx2Loader, gltfLoader) {
     this.scene = scene;
     this.textureLoader = new THREE.TextureLoader();
     this.ktx2Loader = ktx2Loader;
+    this.gltfLoader = gltfLoader;
     this.planets = {}; // Store planet meshes for animation
     
     // Scale factors for visual mode
@@ -32,7 +33,12 @@ export class SolarSystem {
       miranda: 0.8,
       titania: 1.2,
       triton: 1.8,
-      charon: 2.0
+      charon: 2.0,
+      iss: 0.8,
+      jwst: 1.0,
+      cassini: 0.7,
+      juno: 0.7,
+      voyager1: 0.6
     };
 
     // Distances from sun for visual mode
@@ -59,7 +65,12 @@ export class SolarSystem {
       miranda: 40,
       titania: 70,
       triton: 60,
-      charon: 15
+      charon: 15,
+      iss: 18,
+      jwst: 580,
+      cassini: 70,
+      juno: 80,
+      voyager1: 4500
     };
 
     // Realistic scale data (1 AU = 3000 units for distance to fit in float precision safely)
@@ -87,7 +98,12 @@ export class SolarSystem {
       miranda: 0.0008 * AU * 150,
       titania: 0.0029 * AU * 150,
       triton: 0.0024 * AU * 150,
-      charon: 0.00013 * AU * 150
+      charon: 0.00013 * AU * 150,
+      iss: 0.000003 * AU * 150,
+      jwst: 1.01 * AU,
+      cassini: 0.004 * AU * 150,
+      juno: 0.005 * AU * 150,
+      voyager1: 162 * AU
     };
 
     // Realistic radii relative to Earth = 1.0, scaled down so Earth = 0.127 units (which matches 6371km / 149.6m km * 3000)
@@ -115,7 +131,12 @@ export class SolarSystem {
       miranda: 0.037 * R_earth,
       titania: 0.06 * R_earth,
       triton: 0.106 * R_earth,
-      charon: 0.095 * R_earth
+      charon: 0.095 * R_earth,
+      iss: 0.00001 * R_earth * 1000, // Slightly scaled up so they are minimally visible
+      jwst: 0.00001 * R_earth * 1000,
+      cassini: 0.00001 * R_earth * 1000,
+      juno: 0.00001 * R_earth * 1000,
+      voyager1: 0.00001 * R_earth * 1000
     };
 
     this.activeDistances = this.visualDistances;
@@ -144,7 +165,12 @@ export class SolarSystem {
       miranda: { orbitDays: 1.413, rotateDays: 1.413, L0: 0, offset: 0, tilt: 0, e: 0.0013, w: 0 },
       titania: { orbitDays: 8.705, rotateDays: 8.705, L0: 180, offset: 0, tilt: 0, e: 0.0011, w: 0 },
       triton: { orbitDays: -5.877, rotateDays: 5.877, L0: 0, offset: 0, tilt: 0, e: 0.0000, w: 0 },
-      charon: { orbitDays: 6.387, rotateDays: 6.387, L0: 0, offset: 0, tilt: 0, e: 0.0000, w: 0 }
+      charon: { orbitDays: 6.387, rotateDays: 6.387, L0: 0, offset: 0, tilt: 0, e: 0.0000, w: 0 },
+      iss: { orbitDays: 0.064, rotateDays: 0.064, L0: 0, offset: 0, tilt: 51.6, e: 0.0, w: 0 },
+      jwst: { orbitDays: 365.25, rotateDays: 365.25, L0: 100.46, offset: 0, tilt: 0, e: 0.0167, w: 102.94 }, 
+      cassini: { orbitDays: 15, rotateDays: 1, L0: 45, offset: 0, tilt: 0, e: 0.3, w: 0 },
+      juno: { orbitDays: 53, rotateDays: 1, L0: 90, offset: 0, tilt: 90, e: 0.5, w: 0 },
+      voyager1: { orbitDays: 999999, rotateDays: 1, L0: 250, offset: 0, tilt: 35, e: 0, w: 0 } 
     };
 
     this.orbitsVisible = true;
@@ -505,6 +531,13 @@ export class SolarSystem {
       });
       this.createMoon('charon', 'charon.webp', 'pluto');
     }
+
+    // Spacecrafts
+    this.createSpacecraft('iss', 'iss.glb', 'earth');
+    this.createSpacecraft('jwst', 'jwst.glb', 'sun'); // Or 'earth', but sun gives it independent orbit
+    this.createSpacecraft('cassini', 'cassini.glb', 'saturn');
+    this.createSpacecraft('juno', 'juno.glb', 'jupiter');
+    this.createSpacecraft('voyager1', 'voyager1.glb', 'sun');
   }
 
   createSimplePlanet(id, textureName) {
@@ -537,6 +570,97 @@ export class SolarSystem {
     const pData = this.physicsData[id];
     
     this.planets[id] = { mesh, pivot, moonContainer, id, trail: null };
+  }
+
+  createSpacecraft(id, modelName, parentId) {
+    // 1. Create a temporary glowing sphere while loading
+    const tempGeo = new THREE.SphereGeometry(this.visualRadii[id], 16, 16);
+    const tempMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+    const mesh = new THREE.Mesh(tempGeo, tempMat);
+
+    // Common hierarchy for moons/spacecrafts
+    const pivot = new THREE.Group();
+    if(this.planets[parentId] && this.planets[parentId].planetContainer) {
+        this.planets[parentId].planetContainer.add(pivot);
+    } else {
+        this.scene.add(pivot);
+    }
+    
+    const spacecraftContainer = new THREE.Group();
+    pivot.add(spacecraftContainer);
+    spacecraftContainer.add(mesh);
+    
+    // Track in planets dictionary (spacecrafts follow similar physics logic as moons)
+    this.planets[id] = { mesh, pivot, moonContainer: spacecraftContainer, id, trail: null, isSpacecraft: true };
+
+    // 2. Load the actual GLTF model
+    if (this.gltfLoader) {
+      this.gltfLoader.load(`/models/${modelName}`, (gltf) => {
+        const model = gltf.scene;
+        
+        // Compute bounding box to auto-scale model to the intended visual radius
+        const box = new THREE.Box3().setFromObject(model);
+        let size = box.getSize(new THREE.Vector3());
+        
+        // Handle models that don't have properly calculated bounds initially
+        if (size.x === 0 && size.y === 0 && size.z === 0) {
+          model.traverse((child) => {
+             if (child.isMesh) {
+                child.geometry.computeBoundingBox();
+                box.union(child.geometry.boundingBox);
+             }
+          });
+          size = box.getSize(new THREE.Vector3());
+        }
+        
+        let maxDim = Math.max(size.x, size.y, size.z);
+        if (maxDim === 0 || !isFinite(maxDim)) maxDim = 1; // Fallback to avoid Infinity scale
+        
+        // We want the max dimension to roughly match the visual diameter (radius * 2)
+        const targetDiameter = this.visualRadii[id] * 2.0;
+        const scale = targetDiameter / maxDim;
+        
+        // Scale and center the model
+        model.scale.set(scale, scale, scale);
+        
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+        
+        // Correct the inherent orientation of NASA models so their main dish/antenna points towards +Z
+        // This ensures that when we use lookAt(earthPos), the dish points at Earth.
+        const deg2rad = Math.PI / 180;
+        if (id === 'voyager1') {
+           model.rotation.set(0, 276 * deg2rad, 284 * deg2rad);
+        } else if (id === 'jwst') {
+           model.rotation.set(0, 180 * deg2rad, 0);
+        } else if (id === 'cassini') {
+           model.rotation.set(34 * deg2rad, 125 * deg2rad, 0);
+        } else if (id === 'juno') {
+           model.rotation.set(90 * deg2rad, 180 * deg2rad, 8 * deg2rad);
+        }
+        
+        // Create a wrapper group so we can rotate the spacecraft independently if needed
+        const modelWrapper = new THREE.Group();
+        modelWrapper.add(model);
+        
+        // Enable shadows on the model
+        model.traverse(c => {
+          if (c.isMesh) {
+            c.castShadow = true;
+            c.receiveShadow = true;
+          }
+        });
+
+        // Swap the temporary mesh with the actual model
+        spacecraftContainer.remove(mesh);
+        spacecraftContainer.add(modelWrapper);
+        
+        // Update reference
+        this.planets[id].mesh = modelWrapper;
+      }, undefined, (error) => {
+        console.error(`Error loading spacecraft model ${modelName}:`, error);
+      });
+    }
   }
 
   addPlanetToScene(id, mesh) {
@@ -600,6 +724,12 @@ export class SolarSystem {
   }
 
   update(deltaTime, simulatedDays) {
+    // Get Earth's world position to orient spacecraft dishes
+    const earthPos = new THREE.Vector3();
+    if (this.planets['earth'] && this.planets['earth'].mesh) {
+      this.planets['earth'].mesh.getWorldPosition(earthPos);
+    }
+
     Object.values(this.planets).forEach(p => {
       const pData = this.physicsData[p.id];
       let orbitalAngle = 0;
@@ -641,6 +771,10 @@ export class SolarSystem {
           
           // mesh.rotation.y = orbitalAngle + T * 2PI + PI/2 aligns Greenwich (at -Z) perfectly
           p.mesh.rotation.y = orbitalAngle + (T * Math.PI * 2) + (Math.PI / 2);
+        } else if (p.isSpacecraft && p.id !== 'iss') {
+          // Deep space probes point their communication dishes towards Earth
+          // We use lookAt to continuously orient the model towards Earth's world position.
+          p.mesh.lookAt(earthPos);
         } else {
           const timeRotation = (simulatedDays / pData.rotateDays) * Math.PI * 2;
           const textureOffsetRad = (pData.offset || 0) * (Math.PI / 180);

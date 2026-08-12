@@ -6,6 +6,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import gsap from 'gsap';
 import { SolarSystem } from './solarSystem.js';
 import { TimeEngine } from './timeEngine.js';
@@ -71,9 +73,6 @@ export class SceneManager {
     // Slower / more precise on mobile fingers vs. mouse
     this.controls.rotateSpeed = isMobile ? 0.5 : 1.0;
     this.controls.zoomSpeed  = isMobile ? 0.8 : 1.2;
-    // Smoother min-distance zoom-in limit on pinch
-    this.controls.minPolarAngle = 0;
-    this.controls.maxPolarAngle = Math.PI;
 
     // Freecam setup
     this.flyControls = new FlyControls(this.camera, this.renderer.domElement);
@@ -120,9 +119,14 @@ export class SceneManager {
       .setTranscoderPath('/basis/')
       .detectSupport(this.renderer);
 
+    this.gltfLoader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+    this.gltfLoader.setDRACOLoader(dracoLoader);
+
     // Initialize Physics, Time & UI
     // Solar System & Data
-    this.solarSystem = new SolarSystem(this.scene, this.ktx2Loader);
+    this.solarSystem = new SolarSystem(this.scene, this.ktx2Loader, this.gltfLoader);
 
     this.setupLighting();
     this.setupSkybox();
@@ -293,10 +297,11 @@ export class SceneManager {
     this.lastTrackedPos = currentPos.clone();
 
     // Dynamic offset based on planet radius to avoid clipping
-    const offsetMag = Math.max(radius * 4, 30); 
+    const isSpacecraft = planetObj.isSpacecraft;
+    const offsetMag = isSpacecraft ? Math.max(radius * 4, 2) : Math.max(radius * 4, 30); 
     
     // Prevent zooming inside the texture
-    this.controls.minDistance = radius * 1.5;
+    this.controls.minDistance = isSpacecraft ? radius * 1.5 : Math.max(radius * 1.5, 5);
 
     // Calculate start offsets relative to current planet position
     const startTargetOffset = new THREE.Vector3().subVectors(this.controls.target, currentPos);
