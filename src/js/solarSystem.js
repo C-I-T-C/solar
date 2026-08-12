@@ -406,7 +406,9 @@ export class SolarSystem {
       map: ringTex,
       transparent: true,
       side: THREE.DoubleSide,
-      color: 0xffffff
+      color: 0x000000,
+      emissive: 0xffffff,
+      emissiveMap: ringTex
     });
     
     // Custom Shader for perfect physical ring shadow without FPS drops
