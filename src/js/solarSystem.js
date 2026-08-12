@@ -202,6 +202,11 @@ export class SolarSystem {
     const tex = this.textureLoader.load(`/textures/lowres/${baseName}.webp`);
     tex.colorSpace = THREE.SRGBColorSpace;
     
+    // WebGL's flipY parameter is not supported for KTX2 compressed textures.
+    // We disable flipY on the WebP so both formats are loaded identically (upside down).
+    // The actual V coordinate flip is now handled robustly directly on the Geometry UVs.
+    tex.flipY = false;
+    
     // Delay high-res loading slightly to ensure smooth startup animation
     setTimeout(() => {
       if (useKtx2) {
@@ -230,15 +235,26 @@ export class SolarSystem {
   createLODMesh(radius, material, segments = 64) {
     const lod = new THREE.LOD();
     
+    // Helper to flip V coordinates so KTX2 textures map properly without upside-down issues
+    const invertV = (geo) => {
+      const uv = geo.attributes.uv;
+      for (let i = 0; i < uv.count; i++) {
+        uv.setY(i, 1 - uv.getY(i));
+      }
+    };
+    
     const highGeo = new THREE.SphereGeometry(radius, segments, segments);
+    invertV(highGeo);
     const highMesh = new THREE.Mesh(highGeo, material);
     lod.addLevel(highMesh, 0);
 
     const medGeo = new THREE.SphereGeometry(radius, Math.max(16, Math.floor(segments / 2)), Math.max(16, Math.floor(segments / 2)));
+    invertV(medGeo);
     const medMesh = new THREE.Mesh(medGeo, material);
     lod.addLevel(medMesh, radius * 40);
 
     const lowGeo = new THREE.SphereGeometry(radius, Math.max(8, Math.floor(segments / 4)), Math.max(8, Math.floor(segments / 4)));
+    invertV(lowGeo);
     const lowMesh = new THREE.Mesh(lowGeo, material);
     lod.addLevel(lowMesh, radius * 120);
     
