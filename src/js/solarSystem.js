@@ -24,7 +24,14 @@ export class SolarSystem {
       europa: 1.3,
       ganymede: 2.1,
       callisto: 1.9,
-      titan: 2.0
+      titan: 2.0,
+      phobos: 0.5,
+      deimos: 0.4,
+      enceladus: 1.0,
+      miranda: 0.8,
+      titania: 1.2,
+      triton: 1.8,
+      charon: 2.0
     };
 
     // Distances from sun for visual mode
@@ -44,7 +51,14 @@ export class SolarSystem {
       europa: 90,
       ganymede: 140,
       callisto: 190,
-      titan: 120
+      titan: 120,
+      phobos: 15,
+      deimos: 25,
+      enceladus: 70,
+      miranda: 40,
+      titania: 70,
+      triton: 60,
+      charon: 15
     };
 
     // Realistic scale data (1 AU = 3000 units for distance to fit in float precision safely)
@@ -65,7 +79,14 @@ export class SolarSystem {
       europa: 0.0044 * AU * 150,
       ganymede: 0.0071 * AU * 150,
       callisto: 0.0125 * AU * 150,
-      titan: 0.0081 * AU * 150
+      titan: 0.0081 * AU * 150,
+      phobos: 0.000063 * AU * 150,
+      deimos: 0.000157 * AU * 150,
+      enceladus: 0.0016 * AU * 150,
+      miranda: 0.0008 * AU * 150,
+      titania: 0.0029 * AU * 150,
+      triton: 0.0024 * AU * 150,
+      charon: 0.00013 * AU * 150
     };
 
     // Realistic radii relative to Earth = 1.0, scaled down so Earth = 0.127 units (which matches 6371km / 149.6m km * 3000)
@@ -86,7 +107,14 @@ export class SolarSystem {
       europa: 0.031 * R_earth,
       ganymede: 0.052 * R_earth,
       callisto: 0.048 * R_earth,
-      titan: 0.051 * R_earth
+      titan: 0.051 * R_earth,
+      phobos: 0.0017 * R_earth,
+      deimos: 0.001 * R_earth,
+      enceladus: 0.04 * R_earth,
+      miranda: 0.037 * R_earth,
+      titania: 0.06 * R_earth,
+      triton: 0.106 * R_earth,
+      charon: 0.095 * R_earth
     };
 
     this.activeDistances = this.visualDistances;
@@ -108,7 +136,14 @@ export class SolarSystem {
       europa: { orbitDays: 3.55, rotateDays: 3.55, L0: 90, offset: 0, tilt: 0, e: 0.009, w: 0 },
       ganymede: { orbitDays: 7.15, rotateDays: 7.15, L0: 180, offset: 0, tilt: 0, e: 0.0013, w: 0 },
       callisto: { orbitDays: 16.69, rotateDays: 16.69, L0: 270, offset: 0, tilt: 0, e: 0.0074, w: 0 },
-      titan: { orbitDays: 15.94, rotateDays: 15.94, L0: 0, offset: 0, tilt: 0, e: 0.0288, w: 0 }
+      titan: { orbitDays: 15.94, rotateDays: 15.94, L0: 0, offset: 0, tilt: 0, e: 0.0288, w: 0 },
+      phobos: { orbitDays: 0.318, rotateDays: 0.318, L0: 0, offset: 0, tilt: 0, e: 0.0151, w: 0 },
+      deimos: { orbitDays: 1.262, rotateDays: 1.262, L0: 180, offset: 0, tilt: 0, e: 0.0002, w: 0 },
+      enceladus: { orbitDays: 1.37, rotateDays: 1.37, L0: 90, offset: 0, tilt: 0, e: 0.0047, w: 0 },
+      miranda: { orbitDays: 1.413, rotateDays: 1.413, L0: 0, offset: 0, tilt: 0, e: 0.0013, w: 0 },
+      titania: { orbitDays: 8.705, rotateDays: 8.705, L0: 180, offset: 0, tilt: 0, e: 0.0011, w: 0 },
+      triton: { orbitDays: -5.877, rotateDays: 5.877, L0: 0, offset: 0, tilt: 0, e: 0.0000, w: 0 },
+      charon: { orbitDays: 6.387, rotateDays: 6.387, L0: 0, offset: 0, tilt: 0, e: 0.0000, w: 0 }
     };
 
     this.orbitsVisible = true;
@@ -237,17 +272,15 @@ export class SolarSystem {
 
     // Mars
     this.createSimplePlanet('mars', 'mars.webp');
+    this.createMoon('phobos', 'phobos.webp', 'mars');
+    this.createMoon('deimos', 'deimos.webp', 'mars');
 
     // Jupiter
     this.createSimplePlanet('jupiter', 'jupiter.webp');
-    this.createMoon('io', 'moon.webp', 'jupiter');
-    this.planets.io.mesh.material.color.setHex(0xffffaa);
-    this.createMoon('europa', 'moon.webp', 'jupiter');
-    this.planets.europa.mesh.material.color.setHex(0xddddcc);
-    this.createMoon('ganymede', 'moon.webp', 'jupiter');
-    this.planets.ganymede.mesh.material.color.setHex(0xaabbbb);
-    this.createMoon('callisto', 'moon.webp', 'jupiter');
-    this.planets.callisto.mesh.material.color.setHex(0x8899aa);
+    this.createMoon('io', 'io.webp', 'jupiter');
+    this.createMoon('europa', 'europa.webp', 'jupiter');
+    this.createMoon('ganymede', 'ganymede.webp', 'jupiter');
+    this.createMoon('callisto', 'callisto.webp', 'jupiter');
 
     // Saturn
     const saturnGeo = new THREE.SphereGeometry(this.visualRadii.saturn, 64, 64);
@@ -377,22 +410,26 @@ export class SolarSystem {
     this.planets.saturn.ringMat = ringMat;
     
     // Saturn's Titan
-    this.createMoon('titan', 'venus_atmosphere.webp', 'saturn');
-    this.planets.titan.mesh.material.color.setHex(0xffaa55);
+    this.createMoon('titan', 'titan.webp', 'saturn');
+    this.createMoon('enceladus', 'enceladus.webp', 'saturn');
 
     // Uranus
     this.createSimplePlanet('uranus', 'uranus.webp');
     // Uranus orbits on its side
     this.planets.uranus.mesh.rotation.z = Math.PI / 2; 
+    this.createMoon('miranda', 'miranda.webp', 'uranus');
+    this.createMoon('titania', 'titania.webp', 'uranus'); 
 
     // Neptune
     this.createSimplePlanet('neptune', 'neptune.webp');
+    this.createMoon('triton', 'triton.webp', 'neptune');
     
     // Pluto (Easter Egg)
     this.createSimplePlanet('pluto', 'moon.webp'); 
     if (this.planets.pluto) {
       // Tint it brownish-red to look like Pluto
       this.planets.pluto.mesh.material.color.setHex(0xd2b48c);
+      this.createMoon('charon', 'charon.webp', 'pluto');
     }
   }
 
