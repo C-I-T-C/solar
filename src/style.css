@@ -166,6 +166,7 @@ button {
   position: absolute;
   right: 20px;
   top: 20px;
+  z-index: 100;
   width: 260px;
   display: flex;
   flex-direction: column;
@@ -226,6 +227,7 @@ button {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 100;
   padding: 16px 28px;
   border-radius: 20px;
   display: flex;
@@ -284,6 +286,7 @@ button {
   position: absolute;
   top: 20px;
   right: 300px; /* Positions it to the left of the nav menu */
+  z-index: 100;
   width: 340px;
   max-height: calc(100vh - 120px);
   border-radius: 16px;
@@ -406,7 +409,7 @@ button {
   font-family: 'Vazirmatn', sans-serif;
   font-weight: bold;
   pointer-events: none; /* Let clicks pass to canvas */
-  z-index: 100;
+  z-index: 5;
   transition: opacity 0.3s, transform 0.3s;
   transform: translate(-50%, -100%); /* Center horizontally and sit above */
   white-space: nowrap;

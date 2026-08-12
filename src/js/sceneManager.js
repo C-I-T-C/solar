@@ -182,7 +182,7 @@ export class SceneManager {
         meshesToTest.push(this.asteroidBelt.hitMesh);
       }
 
-      const intersects = this.raycaster.intersectObjects(meshesToTest, false);
+      const intersects = this.raycaster.intersectObjects(meshesToTest, true);
 
       if (intersects.length > 0) {
         const hitMesh = intersects[0].object;
@@ -190,7 +190,14 @@ export class SceneManager {
           // Tell UI controller to open inspector for Asteroid Belt
           this.uiController.openInspector('asteroid_belt');
         } else {
-          const planetEntry = Object.values(this.solarSystem.planets).find(p => p.mesh === hitMesh);
+          const planetEntry = Object.values(this.solarSystem.planets).find(p => {
+            let current = hitMesh;
+            while (current) {
+              if (current === p.mesh) return true;
+              current = current.parent;
+            }
+            return false;
+          });
           if (planetEntry) {
             this.uiController.openInspector(planetEntry.id);
           }

@@ -227,14 +227,31 @@ export class SolarSystem {
     return tex;
   }
 
+  createLODMesh(radius, material, segments = 64) {
+    const lod = new THREE.LOD();
+    
+    const highGeo = new THREE.SphereGeometry(radius, segments, segments);
+    const highMesh = new THREE.Mesh(highGeo, material);
+    lod.addLevel(highMesh, 0);
+
+    const medGeo = new THREE.SphereGeometry(radius, Math.max(16, Math.floor(segments / 2)), Math.max(16, Math.floor(segments / 2)));
+    const medMesh = new THREE.Mesh(medGeo, material);
+    lod.addLevel(medMesh, radius * 40);
+
+    const lowGeo = new THREE.SphereGeometry(radius, Math.max(8, Math.floor(segments / 4)), Math.max(8, Math.floor(segments / 4)));
+    const lowMesh = new THREE.Mesh(lowGeo, material);
+    lod.addLevel(lowMesh, radius * 120);
+    
+    return lod;
+  }
+
   createSun() {
-    const geo = new THREE.SphereGeometry(this.visualRadii.sun, 64, 64);
     const mat = new THREE.MeshBasicMaterial({
       map: this.loadTex('sun.webp')
     });
     // Boost color intensity above 1.0 so it triggers the Bloom threshold!
     mat.color.setScalar(1.5);
-    this.sun = new THREE.Mesh(geo, mat);
+    this.sun = this.createLODMesh(this.visualRadii.sun, mat, 64);
     this.scene.add(this.sun);
     this.planets.sun = { mesh: this.sun, id: 'sun' };
   }
@@ -244,31 +261,30 @@ export class SolarSystem {
     this.createSimplePlanet('mercury', 'mercury.webp');
     
     // Venus
-    const venusGeo = new THREE.SphereGeometry(this.visualRadii.venus, 64, 64);
     const venusMat = new THREE.MeshStandardMaterial({
       map: this.loadTex('venus_surface.webp'),
       roughness: 0.8
     });
-    const venusMesh = new THREE.Mesh(venusGeo, venusMat);
-    venusMesh.castShadow = true;
-    venusMesh.receiveShadow = true;
+    const venusMesh = this.createLODMesh(this.visualRadii.venus, venusMat, 64);
+    venusMesh.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
     
     // Venus Atmosphere
-    const vAtmoGeo = new THREE.SphereGeometry(this.visualRadii.venus * 1.02, 64, 64);
     const vAtmoMat = new THREE.MeshStandardMaterial({
       map: this.loadTex('venus_atmosphere.webp'),
       transparent: true,
       opacity: 0.6,
       blending: THREE.AdditiveBlending
     });
-    const venusAtmoMesh = new THREE.Mesh(vAtmoGeo, vAtmoMat);
-    venusMesh.add(venusAtmoMesh);
+    const venusAtmoMesh = this.createLODMesh(this.visualRadii.venus * 1.02, vAtmoMat, 64);
     
-    this.addPlanetToScene('venus', venusMesh);
+    const venusGroup = new THREE.Group();
+    venusGroup.add(venusMesh);
+    venusGroup.add(venusAtmoMesh);
+    
+    this.addPlanetToScene('venus', venusGroup);
     this.planets.venus.clouds = venusAtmoMesh;
 
     // Earth
-    const earthGeo = new THREE.SphereGeometry(this.visualRadii.earth, 64, 64);
     const earthMat = new THREE.MeshPhongMaterial({
       map: this.loadTex('earth_daymap.webp'),
       specularMap: this.loadTex('earth_specular_map.webp'),
@@ -276,12 +292,10 @@ export class SolarSystem {
       specular: new THREE.Color(0x333333),
       shininess: 15
     });
-    const earthMesh = new THREE.Mesh(earthGeo, earthMat);
-    earthMesh.castShadow = true;
-    earthMesh.receiveShadow = true;
+    const earthMesh = this.createLODMesh(this.visualRadii.earth, earthMat, 64);
+    earthMesh.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
     
     // Earth Clouds
-    const cloudGeo = new THREE.SphereGeometry(this.visualRadii.earth * 1.015, 64, 64);
     const cloudMat = new THREE.MeshLambertMaterial({
       map: this.loadTex('earth_clouds.webp'),
       transparent: true,
@@ -289,13 +303,16 @@ export class SolarSystem {
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide
     });
-    const earthClouds = new THREE.Mesh(cloudGeo, cloudMat);
-    earthMesh.add(earthClouds);
+    const earthClouds = this.createLODMesh(this.visualRadii.earth * 1.015, cloudMat, 64);
+    
+    const earthGroup = new THREE.Group();
+    earthGroup.add(earthMesh);
+    earthGroup.add(earthClouds);
     
     // Earth Night Map (Bonus feature using custom shader or additive blend, for now basic)
     // To keep it clean in Three.js without custom shaders, we'll rely on the day map and lights.
 
-    this.addPlanetToScene('earth', earthMesh);
+    this.addPlanetToScene('earth', earthGroup);
     this.planets.earth.clouds = earthClouds;
 
     // Earth's Moon
@@ -314,7 +331,6 @@ export class SolarSystem {
     this.createMoon('callisto', 'callisto.webp', 'jupiter');
 
     // Saturn
-    const saturnGeo = new THREE.SphereGeometry(this.visualRadii.saturn, 64, 64);
     const saturnMat = new THREE.MeshStandardMaterial({
       map: this.loadTex('saturn.webp'),
       roughness: 0.7
@@ -371,7 +387,8 @@ export class SolarSystem {
       saturnMat.userData.shader = shader;
     };
     
-    const saturnMesh = new THREE.Mesh(saturnGeo, saturnMat);
+    const saturnMesh = this.createLODMesh(this.visualRadii.saturn, saturnMat, 64);
+    saturnMesh.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
     
     // Saturn Rings
     const ringGeo = new THREE.RingGeometry(innerRing, outerRing, 64);
@@ -435,10 +452,13 @@ export class SolarSystem {
     const ringMesh = new THREE.Mesh(ringGeo, ringMat);
     ringMesh.rotation.x = Math.PI / 2; // Flat on XZ plane
 
-    saturnMesh.add(ringMesh);
+    const saturnGroup = new THREE.Group();
+    saturnGroup.add(saturnMesh);
+    saturnGroup.add(ringMesh);
 
-    this.addPlanetToScene('saturn', saturnMesh);
+    this.addPlanetToScene('saturn', saturnGroup);
     this.planets.saturn.ringMat = ringMat;
+    this.planets.saturn.saturnMat = saturnMat;
     
     // Saturn's Titan
     this.createMoon('titan', 'titan.webp', 'saturn');
@@ -459,32 +479,30 @@ export class SolarSystem {
     this.createSimplePlanet('pluto', 'moon.webp'); 
     if (this.planets.pluto) {
       // Tint it brownish-red to look like Pluto
-      this.planets.pluto.mesh.material.color.setHex(0xd2b48c);
+      this.planets.pluto.mesh.traverse(c => {
+        if (c.isMesh && c.material) c.material.color.setHex(0xd2b48c);
+      });
       this.createMoon('charon', 'charon.webp', 'pluto');
     }
   }
 
   createSimplePlanet(id, textureName) {
-    const geo = new THREE.SphereGeometry(this.visualRadii[id], 64, 64);
     const mat = new THREE.MeshStandardMaterial({
       map: this.loadTex(textureName),
       roughness: 0.8
     });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    const mesh = this.createLODMesh(this.visualRadii[id], mat, 64);
+    mesh.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
     this.addPlanetToScene(id, mesh);
   }
 
   createMoon(id, textureName, parentId) {
-    const geo = new THREE.SphereGeometry(this.visualRadii[id], 32, 32);
     const mat = new THREE.MeshStandardMaterial({
       map: this.loadTex(textureName),
       roughness: 0.9
     });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    const mesh = this.createLODMesh(this.visualRadii[id], mat, 32);
+    mesh.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
     
     const pivot = new THREE.Group();
     if(this.planets[parentId]) {
@@ -627,11 +645,11 @@ export class SolarSystem {
         if (p.ringMat && p.ringMat.userData.shader) {
           p.ringMat.userData.shader.uniforms.planetWorldPos.value.copy(p.planetContainer.position);
         }
-        if (p.mesh.material.userData.shader) {
+        if (p.saturnMat && p.saturnMat.userData.shader) {
           // Calculate Sun's position in Saturn's local space
           const sunLocal = new THREE.Vector3(0, 0, 0);
           p.mesh.worldToLocal(sunLocal);
-          p.mesh.material.userData.shader.uniforms.sunLocalPos.value.copy(sunLocal);
+          p.saturnMat.userData.shader.uniforms.sunLocalPos.value.copy(sunLocal);
         }
       }
       
