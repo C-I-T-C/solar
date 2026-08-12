@@ -27,7 +27,8 @@ body {
   color: var(--text-main);
   overflow: hidden;
   width: 100vw;
-  height: 100vh;
+  /* dvh = dynamic viewport height — shrinks with browser chrome on iOS/Android */
+  height: 100dvh;
 }
 
 #canvas-container {
@@ -172,7 +173,7 @@ button {
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
 }
 
 .logo {
@@ -221,7 +222,6 @@ button {
   padding-top: 16px;
 }
 
-/* Time Machine */
 .time-machine {
   position: absolute;
   bottom: 24px;
@@ -288,13 +288,24 @@ button {
   right: 300px; /* Positions it to the left of the nav menu */
   z-index: 100;
   width: 340px;
-  max-height: calc(100vh - 120px);
+  max-height: calc(100dvh - 120px);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease;
-  border: 1px solid rgba(157, 78, 221, 0.2); /* Subtle purple hint */
+  border: 1px solid rgba(157, 78, 221, 0.2);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(157, 78, 221, 0.05);
+}
+
+/* Drag handle pill — visible on mobile bottom sheet */
+.drag-handle {
+  display: none;
+  width: 40px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 100px;
+  margin: 10px auto 4px;
+  flex-shrink: 0;
 }
 
 .inspector-drawer.hidden {
@@ -426,37 +437,42 @@ button {
 /* Responsive Mobile Layout */
 @media (max-width: 768px) {
   .mobile-toggle-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: absolute;
     z-index: 70;
     background: rgba(10, 10, 15, 0.8);
     border: 1px solid rgba(0, 240, 255, 0.3);
     color: var(--accent-cyan);
-    border-radius: 8px;
-    padding: 6px 12px;
+    border-radius: 10px;
+    padding: 6px 14px;
     font-family: inherit;
     font-weight: bold;
     cursor: pointer;
     backdrop-filter: blur(5px);
     transition: all 0.3s ease;
     pointer-events: auto;
+    /* Apple HIG: minimum 44×44pt touch target */
+    min-height: 44px;
+    min-width: 44px;
   }
   
   .top-toggle {
-    top: 5px;
-    right: 10px;
+    top: 8px;
+    right: 12px;
   }
   
   .bottom-toggle {
-    bottom: 10px;
-    right: 10px;
+    bottom: 14px;
+    right: 12px;
   }
 
   .side-nav {
     top: 0;
     right: 0;
     width: 100vw;
-    padding: 35px 10px 15px 10px; /* Extra top padding so buttons fit underneath toggle */
+    padding: 52px 10px 15px 10px;
     background: rgba(10, 10, 15, 0.95);
     border-bottom: 1px solid rgba(0, 240, 255, 0.2);
     border-left: none;
@@ -479,15 +495,32 @@ button {
     display: flex;
     flex-direction: row;
     overflow-x: auto;
-    gap: 10px;
+    gap: 8px;
     padding-bottom: 2px;
+    /* Momentum scrolling on iOS */
     -webkit-overflow-scrolling: touch;
+    /* Snap scroll for tactile feel */
+    scroll-snap-type: x mandatory;
+    /* Hide scrollbar on all browsers */
+    scrollbar-width: none;     /* Firefox */
+    -ms-overflow-style: none;  /* IE/Edge */
+    /* Allow horizontal panning without blocking Three.js canvas */
+    touch-action: pan-x;
+  }
+
+  /* Hide scrollbar on Chrome/Safari */
+  .planet-links::-webkit-scrollbar {
+    display: none;
   }
   
   .planet-links .btn {
     white-space: nowrap;
-    padding: 8px 12px;
+    padding: 10px 14px;
     flex: 0 0 auto;
+    /* Snap to left edge */
+    scroll-snap-align: start;
+    /* Minimum tap target */
+    min-height: 44px;
   }
   
   .controls-top {
@@ -504,9 +537,11 @@ button {
 
   .controls-top .btn {
     font-size: 0.85rem;
-    padding: 6px 10px;
+    padding: 8px 10px;
+    min-height: 44px;
   }
 
+  /* ── Bottom Sheet Inspector ── */
   .inspector-drawer {
     top: auto;
     bottom: 0;
@@ -514,31 +549,53 @@ button {
     right: 0;
     transform: translateY(0);
     width: 100vw;
-    height: 50vh;
-    max-height: 400px;
+    /* 70dvh keeps top portion of screen free for 3D interaction */
+    max-height: 70dvh;
     border-radius: 24px 24px 0 0;
     border-bottom: none;
     border-left: none;
     border-right: none;
+    /* Glowing top border for the bottom sheet */
+    border-top: 1px solid rgba(0, 240, 255, 0.3);
+    box-shadow: 0 -8px 40px rgba(0, 240, 255, 0.1), 0 -2px 20px rgba(0,0,0,0.6);
     z-index: 60;
+    /* Contain overscroll so inner scroll doesn't bubble to page */
+    overscroll-behavior: contain;
+  }
+
+  /* Show drag handle only on mobile */
+  .drag-handle {
+    display: block;
+  }
+
+  /* Allow vertical scrolling in the inspector content on mobile */
+  .inspector-content {
+    touch-action: pan-y;
   }
   
   .inspector-drawer.hidden {
     transform: translateY(100%);
     opacity: 0;
+    pointer-events: none;
   }
 
+  /* ── Time Machine ── */
   .time-machine {
-    bottom: 10px;
+    /* Shift up so it doesn't overlap the bottom sheet trigger area */
+    bottom: 14px;
     left: 50%;
     transform: translateX(-50%);
-    width: 85vw; /* leave space for toggle btn */
-    margin-left: -35px; /* offset center slightly to left */
-    padding: 12px;
+    /* Narrow enough to leave room for the toggle button on right */
+    width: calc(100vw - 80px);
+    max-width: 380px;
+    margin-left: 0;
+    padding: 10px 14px;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     z-index: 40;
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Safe-area inset for notched phones */
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
   
   .time-machine.collapsed {
@@ -563,7 +620,7 @@ button {
 /* Loading Screen */
 #loading-screen {
   position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
+  top: 0; left: 0; width: 100%; height: 100dvh;
   background: radial-gradient(circle at center, #0a0a1a 0%, #000000 100%);
   z-index: 9999;
   display: flex;
@@ -827,7 +884,7 @@ button {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background-color: #000;
   z-index: 1000;
   display: flex;
@@ -984,4 +1041,45 @@ button {
   font-weight: 600;
   font-size: 1rem;
   margin: 0 5px;
+}
+
+/* =========================================================================
+   LANDSCAPE MOBILE ADAPTATIONS
+   Fires when phone is sideways (width > height, max-height is small)
+   ========================================================================= */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Shrink the bottom sheet so landscape still shows 3D content */
+  .inspector-drawer {
+    max-height: 50dvh;
+  }
+
+  /* Compact time machine in landscape */
+  .time-machine {
+    padding: 6px 12px;
+    gap: 6px;
+    bottom: 8px;
+    min-width: unset;
+    width: auto;
+  }
+
+  .time-machine-header {
+    font-size: 0.95rem;
+  }
+
+  .time-controls {
+    gap: 12px;
+  }
+
+  /* Side nav becomes narrower strip in landscape */
+  .side-nav {
+    max-height: 100dvh;
+    overflow-y: auto;
+  }
+}
+
+/* iOS safe-area bottom padding for UI layer */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  #ui-layer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

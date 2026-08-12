@@ -62,7 +62,18 @@ export class SceneManager {
     this.controls.dampingFactor = 0.05;
     this.controls.maxDistance = 20000;
     this.controls.minDistance = 10;
-    this.controls.enablePan = false; // Disable right-click free move to keep camera locked
+    this.controls.enablePan = false;
+    // Explicit touch mode: one-finger rotates, two-finger pinch-to-zoom
+    this.controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN
+    };
+    // Slower / more precise on mobile fingers vs. mouse
+    this.controls.rotateSpeed = isMobile ? 0.5 : 1.0;
+    this.controls.zoomSpeed  = isMobile ? 0.8 : 1.2;
+    // Smoother min-distance zoom-in limit on pinch
+    this.controls.minPolarAngle = 0;
+    this.controls.maxPolarAngle = Math.PI;
 
     // Freecam setup
     this.flyControls = new FlyControls(this.camera, this.renderer.domElement);
@@ -143,6 +154,11 @@ export class SceneManager {
     });
 
     window.addEventListener('resize', this.onWindowResize.bind(this));
+    // orientationchange fires BEFORE resize on iOS — gives us faster response
+    window.addEventListener('orientationchange', () => {
+      // Small delay to let the browser finish the orientation animation
+      setTimeout(this.onWindowResize.bind(this), 150);
+    });
   }
 
   setupLighting() {
@@ -174,12 +190,32 @@ export class SceneManager {
 
   setupRaycaster() {
     this.raycaster = new THREE.Raycaster();
+    // Wider threshold helps on mobile where pixels are physically smaller
+    this.raycaster.params.Points = { threshold: 5 };
     this.mouse = new THREE.Vector2();
 
+    // Track pointer-down time to distinguish tap (<200ms) from drag/scroll
+    let pointerDownTime = 0;
+    let pointerDownPos = { x: 0, y: 0 };
+
     this.renderer.domElement.addEventListener('pointerdown', (event) => {
-      // Basic raycasting check
-      this.mouse.x = (event.clientX / this.width) * 2 - 1;
-      this.mouse.y = -(event.clientY / this.height) * 2 + 1;
+      pointerDownTime = performance.now();
+      pointerDownPos.x = event.clientX;
+      pointerDownPos.y = event.clientY;
+    });
+
+    this.renderer.domElement.addEventListener('pointerup', (event) => {
+      const elapsed = performance.now() - pointerDownTime;
+      const dx = Math.abs(event.clientX - pointerDownPos.x);
+      const dy = Math.abs(event.clientY - pointerDownPos.y);
+
+      // Only fire raycasting if: quick tap (<200ms) and no significant drag (<10px)
+      if (elapsed > 200 || dx > 10 || dy > 10) return;
+
+      // Use live bounding rect so DPR / canvas offset never causes mismatch
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      this.mouse.x =  ((event.clientX - rect.left) / rect.width)  * 2 - 1;
+      this.mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1;
 
       this.raycaster.setFromCamera(this.mouse, this.camera);
 
@@ -197,7 +233,6 @@ export class SceneManager {
       if (intersects.length > 0) {
         const hitMesh = intersects[0].object;
         if (this.asteroidBelt && (hitMesh === this.asteroidBelt.mesh || hitMesh === this.asteroidBelt.hitMesh)) {
-          // Tell UI controller to open inspector for Asteroid Belt
           this.uiController.openInspector('asteroid_belt');
         } else {
           const planetEntry = Object.values(this.solarSystem.planets).find(p => {
@@ -352,8 +387,15 @@ export class SceneManager {
   }
 
   onWindowResize() {
-    this.width = this.container.clientWidth;
-    this.height = this.container.clientHeight;
+    // Re-evaluate mobile status on orientation change (portrait -> landscape)
+    const wasMobile = this.isMobile;
+    this.isMobile = window.innerWidth <= 768 ||
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // Use getBoundingClientRect for accurate dimensions (avoids stale clientWidth after rotation)
+    const rect = this.container.getBoundingClientRect();
+    this.width  = rect.width  || this.container.clientWidth;
+    this.height = rect.height || this.container.clientHeight;
 
     this.camera.aspect = this.width / this.height;
     

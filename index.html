@@ -2,7 +2,12 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- PWA / Fullscreen on mobile -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#020308" />
   <title>شبیه‌ساز سه‌بعدی منظومه شمسی</title>
   
   <!-- Vazirmatn Font -->
@@ -29,7 +34,8 @@
     </div>
 
     <!-- 3D Canvas Container -->
-    <div id="canvas-container"></div>
+    <!-- touch-action:none prevents iOS from intercepting touch/pinch before Three.js can handle them -->
+    <div id="canvas-container" touch-action="none"></div>
   
   <!-- UI Layer -->
   <div id="ui-layer">
@@ -59,6 +65,8 @@
 
     <!-- Planet Inspector Modal (Hidden by default) -->
     <aside id="planet-inspector" class="inspector-drawer glass-panel hidden">
+      <!-- Drag-handle indicator for mobile bottom-sheet swipe-to-dismiss -->
+      <div class="drag-handle" aria-hidden="true"></div>
       <div class="inspector-header">
         <h2 id="inspector-name-fa" class="gradient-text">نام سیاره</h2>
         <span id="inspector-name-en">Planet Name</span>

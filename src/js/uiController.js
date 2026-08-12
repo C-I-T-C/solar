@@ -17,6 +17,18 @@ export class UIController {
     this.initPlanetLinks();
     this.initInspectorEvents();
     this.initGlobalEvents();
+    this.initBottomSheetDrag();
+
+    // Create canvas touch-guard overlay (blocks accidental canvas taps while sheet is open)
+    this.canvasGuard = document.createElement('div');
+    this.canvasGuard.id = 'canvas-touch-guard';
+    this.canvasGuard.style.cssText = [
+      'position:absolute', 'top:0', 'left:0', 'width:100%',
+      // Cover only the part of the canvas above the sheet (30dvh from top = 100-70dvh sheet)
+      'height:30dvh',
+      'z-index:59', 'pointer-events:none', 'display:none'
+    ].join(';');
+    document.getElementById('ui-layer').appendChild(this.canvasGuard);
   }
 
   initGlobalEvents() {
@@ -58,10 +70,10 @@ export class UIController {
       });
     }
 
-    // Mobile Toggle Menus
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    // Planet links — auto-collapse nav on mobile after planet tap
     const sideNav = document.querySelector('.side-nav');
-    if (mobileMenuToggle && sideNav) {
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    if (sideNav && mobileMenuToggle) {
       mobileMenuToggle.addEventListener('click', () => {
         sideNav.classList.toggle('collapsed');
         if (sideNav.classList.contains('collapsed')) {
@@ -142,11 +154,24 @@ export class UIController {
     this.inspector.classList.remove('hidden');
     this.renderTabContent();
     
-    // Shift the 3D scene to the left to perfectly center the planet in the remaining visible space
+    // Shift the 3D scene to expose the planet in the non-occluded area
     this.sceneManager.shiftCameraView(true);
     
     // Auto-focus when opened from side menu
     this.sceneManager.focusOnPlanet(planetId);
+
+    // On mobile: collapse the nav so the user can see the 3D scene
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      const sideNav = document.querySelector('.side-nav');
+      const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+      if (sideNav && !sideNav.classList.contains('collapsed')) {
+        sideNav.classList.add('collapsed');
+        if (mobileMenuToggle) mobileMenuToggle.innerText = 'منوها ▼';
+      }
+      // Activate canvas touch guard
+      if (this.canvasGuard) this.canvasGuard.style.display = 'block';
+    }
   }
 
   closeInspector() {
@@ -154,6 +179,55 @@ export class UIController {
     this.currentPlanetId = null;
     
     this.sceneManager.shiftCameraView(false);
+
+    // Remove canvas touch guard
+    if (this.canvasGuard) this.canvasGuard.style.display = 'none';
+  }
+
+  /** Swipe-down-to-dismiss gesture for the mobile bottom sheet */
+  initBottomSheetDrag() {
+    const sheet = this.inspector;
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    const DISMISS_THRESHOLD = 80; // px
+
+    const onTouchStart = (e) => {
+      // Only track touches starting on/near the drag handle or header
+      startY = e.touches[0].clientY;
+      currentY = startY;
+      isDragging = true;
+      // Remove transition during active drag for instant response
+      sheet.style.transition = 'none';
+    };
+
+    const onTouchMove = (e) => {
+      if (!isDragging) return;
+      currentY = e.touches[0].clientY;
+      const delta = Math.max(0, currentY - startY); // only downward
+      sheet.style.transform = `translateY(${delta}px)`;
+    };
+
+    const onTouchEnd = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      const delta = currentY - startY;
+      // Re-enable transition
+      sheet.style.transition = '';
+
+      if (delta > DISMISS_THRESHOLD) {
+        // Swipe far enough down — dismiss
+        this.closeInspector();
+        sheet.style.transform = ''; // CSS hidden class will handle translateY(100%)
+      } else {
+        // Snap back up
+        sheet.style.transform = '';
+      }
+    };
+
+    sheet.addEventListener('touchstart', onTouchStart, { passive: true });
+    sheet.addEventListener('touchmove',  onTouchMove,  { passive: true });
+    sheet.addEventListener('touchend',   onTouchEnd);
   }
 
   renderTabContent() {
