@@ -420,11 +420,11 @@ export class SceneManager {
   shiftCameraView(active) {
     if (active) {
       if (window.innerWidth > 768) {
-        // Desktop: Inspector on the right, shift camera right so scene shifts left
-        this.camera.setViewOffset(this.width, this.height, 175, 0, this.width, this.height);
+        // Desktop: Inspector is on the LEFT — shift camera left so planet is in right half
+        this.camera.setViewOffset(this.width, this.height, -160, 0, this.width, this.height);
       } else {
-        // Mobile: Inspector at the bottom, shift camera down so scene shifts up
-        this.camera.setViewOffset(this.width, this.height, 0, 100, this.width, this.height);
+        // Mobile: Inspector at the bottom — shift camera up so planet is in top half
+        this.camera.setViewOffset(this.width, this.height, 0, -90, this.width, this.height);
       }
     } else {
       this.camera.clearViewOffset();

@@ -28,11 +28,11 @@ THREE.DefaultLoadingManager.onError = function () {
 };
 
 THREE.DefaultLoadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+  const percent = Math.floor((itemsLoaded / itemsTotal) * 100);
   const progressEl = document.getElementById('loading-progress');
-  if (progressEl) {
-    const percent = Math.floor((itemsLoaded / itemsTotal) * 100);
-    progressEl.innerText = percent + '%';
-  }
+  if (progressEl) progressEl.innerText = percent + '%';
+  const barEl = document.getElementById('loading-bar');
+  if (barEl) barEl.style.width = percent + '%';
 };
 
 function hideLoaderIfReady() {
