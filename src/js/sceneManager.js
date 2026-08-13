@@ -198,23 +198,31 @@ export class SceneManager {
     this.raycaster.params.Points = { threshold: 5 };
     this.mouse = new THREE.Vector2();
 
-    // Track pointer-down time to distinguish tap (<200ms) from drag/scroll
+    // Track pointer-down time to distinguish tap from drag/scroll/pinch
     let pointerDownTime = 0;
     let pointerDownPos = { x: 0, y: 0 };
+    let isMultiTouch = false;
 
     this.renderer.domElement.addEventListener('pointerdown', (event) => {
-      pointerDownTime = performance.now();
-      pointerDownPos.x = event.clientX;
-      pointerDownPos.y = event.clientY;
+      if (event.isPrimary) {
+        isMultiTouch = false; // Reset on primary touch
+        pointerDownTime = performance.now();
+        pointerDownPos.x = event.clientX;
+        pointerDownPos.y = event.clientY;
+      } else {
+        isMultiTouch = true; // Mark as multi-touch (e.g. pinch-to-zoom)
+      }
     });
 
     this.renderer.domElement.addEventListener('pointerup', (event) => {
+      if (!event.isPrimary || isMultiTouch) return; // Ignore if it was a multi-touch gesture
+      
       const elapsed = performance.now() - pointerDownTime;
       const dx = Math.abs(event.clientX - pointerDownPos.x);
       const dy = Math.abs(event.clientY - pointerDownPos.y);
 
-      // Only fire raycasting if: quick tap (<200ms) and no significant drag (<10px)
-      if (elapsed > 200 || dx > 10 || dy > 10) return;
+      // Only fire raycasting if: quick tap (<250ms) and no significant drag (<15px)
+      if (elapsed > 250 || dx > 15 || dy > 15) return;
 
       // Use live bounding rect so DPR / canvas offset never causes mismatch
       const rect = this.renderer.domElement.getBoundingClientRect();

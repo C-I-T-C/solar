@@ -40,7 +40,10 @@
 }
 
 /* ── Reset ── */
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*, *::before, *::after { 
+  margin:0; padding:0; box-sizing:border-box; 
+  -webkit-tap-highlight-color: transparent; 
+}
 
 body {
   font-family: 'Vazirmatn', sans-serif;
@@ -753,10 +756,8 @@ button { font-family: 'Vazirmatn', sans-serif; cursor: pointer; }
 #inspector-name-fa {
   font-size: 1.55rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #ffffff 0%, var(--teal) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--teal);
+  text-shadow: 0 0 16px rgba(0, 217, 184, 0.3);
   line-height: 1.1;
 }
 
@@ -1543,10 +1544,8 @@ button { font-family: 'Vazirmatn', sans-serif; cursor: pointer; }
 .child-card-name {
   font-size: 1.35rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #fff, var(--teal));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--teal);
+  text-shadow: 0 0 16px rgba(0, 217, 184, 0.3);
   line-height: 1.1;
 }
 .child-card-en {
