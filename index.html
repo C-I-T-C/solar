@@ -80,6 +80,23 @@
 
       <!-- Right: Chronometer + Controls -->
       <div class="topbar-right">
+        <div class="music-block" id="music-block">
+          <audio id="bg-music" loop preload="none"></audio>
+          <div class="music-inner">
+            <span class="music-label">MUSIC</span>
+            <div class="music-controls">
+              <button id="bg-music-btn" class="music-btn" title="پخش / توقف" aria-label="play">
+                <svg id="music-icon-play" width="10" height="12" viewBox="0 0 10 12" fill="currentColor"><path d="M0 0L10 6L0 12V0Z"/></svg>
+                <svg id="music-icon-pause" width="10" height="12" viewBox="0 0 10 12" fill="currentColor" style="display:none"><rect x="0" y="0" width="3.5" height="12"/><rect x="6.5" y="0" width="3.5" height="12"/></svg>
+              </button>
+              <div class="vol-track" id="vol-track" title="ولوم">
+                <div class="vol-fill" id="vol-fill" style="width:50%"></div>
+                <div class="vol-thumb" id="vol-thumb" style="left:50%"></div>
+              </div>
+              <span class="vol-value" id="vol-value">50</span>
+            </div>
+          </div>
+        </div>
         <div class="time-block" dir="rtl">
           <span class="time-label">DATE</span>
           <span id="current-date-display">۱ فروردین ۱۴۰۰</span>

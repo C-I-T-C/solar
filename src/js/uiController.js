@@ -132,6 +132,80 @@ export class UIController {
      GLOBAL EVENTS
   ═══════════════════════════════════════════════════════════════ */
   _initGlobalEvents() {
+    /* Music Player */
+    const bgAudio = document.getElementById('bg-music');
+    const bgBtn = document.getElementById('bg-music-btn');
+    const iconPlay = document.getElementById('music-icon-play');
+    const iconPause = document.getElementById('music-icon-pause');
+    const volTrack = document.getElementById('vol-track');
+    const volFill = document.getElementById('vol-fill');
+    const volThumb = document.getElementById('vol-thumb');
+    const volValue = document.getElementById('vol-value');
+
+    if (bgAudio) {
+      bgAudio.volume = 0.5;
+
+      const setVolUI = (v) => {
+        const pct = Math.round(v * 100);
+        if (volFill)  volFill.style.width  = pct + '%';
+        if (volThumb) volThumb.style.left   = pct + '%';
+        if (volValue) volValue.textContent  = pct;
+      };
+      setVolUI(0.5);
+
+      let isAudioLoaded = false;
+      let isAudioLoading = false;
+
+      bgBtn?.addEventListener('click', async () => {
+        if (!isAudioLoaded && !isAudioLoading) {
+          isAudioLoading = true;
+          try {
+            // Fetch as Blob with dummy query to bypass IDM extension sniffing
+            const res = await fetch('/music/song.mp3?nodl=' + Date.now());
+            const blob = await res.blob();
+            bgAudio.src = URL.createObjectURL(blob);
+            isAudioLoaded = true;
+          } catch (err) {
+            console.error("Failed to load audio:", err);
+          }
+          isAudioLoading = false;
+        }
+
+        if (!isAudioLoaded) return; // Wait until loaded
+
+        if (bgAudio.paused) {
+          bgAudio.play().catch(e => console.warn(e));
+          if (iconPlay)  iconPlay.style.display  = 'none';
+          if (iconPause) iconPause.style.display  = '';
+        } else {
+          bgAudio.pause();
+          if (iconPlay)  iconPlay.style.display  = '';
+          if (iconPause) iconPause.style.display  = 'none';
+        }
+      });
+
+      /* Drag on custom vol-track */
+      if (volTrack) {
+        const calcVol = (clientX) => {
+          const rect = volTrack.getBoundingClientRect();
+          return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+        };
+        let dragging = false;
+        volTrack.addEventListener('pointerdown', e => {
+          dragging = true;
+          volTrack.setPointerCapture(e.pointerId);
+          const v = calcVol(e.clientX);
+          bgAudio.volume = v; setVolUI(v);
+        });
+        volTrack.addEventListener('pointermove', e => {
+          if (!dragging) return;
+          const v = calcVol(e.clientX);
+          bgAudio.volume = v; setVolUI(v);
+        });
+        volTrack.addEventListener('pointerup', () => { dragging = false; });
+      }
+    }
+
     /* Toggle Orbits */
     const orbitsBtn = document.getElementById('toggle-orbits-btn');
     let orbitsVisible = true;
