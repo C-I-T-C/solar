@@ -307,14 +307,16 @@ button { font-family: 'Vazirmatn', sans-serif; cursor: pointer; }
 
 /* Center segment: focused planet display */
 .topbar-center {
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   gap: 2px;
   padding: 0 20px;
-  position: relative;
 }
 /* Center decorative lines */
 .topbar-center::before,
@@ -357,6 +359,7 @@ button { font-family: 'Vazirmatn', sans-serif; cursor: pointer; }
 .topbar-right {
   display: flex;
   align-items: center;
+  margin-left: auto;
   border-left: 1px solid rgba(0,217,184,.1);
   flex-shrink: 0;
 }
