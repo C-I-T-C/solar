@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { celestialData } from './celestialData.js';
+import { ISSTracker } from './issTracker.js';
 
 export class SolarSystem {
   constructor(scene, ktx2Loader, gltfLoader) {
@@ -178,6 +179,9 @@ export class SolarSystem {
 
     this.createSun();
     this.createPlanets();
+    
+    this.issTracker = new ISSTracker(this);
+    this.issTracker.init();
   }
 
   setOrbitsVisible(isVisible) {
@@ -734,7 +738,7 @@ export class SolarSystem {
       const pData = this.physicsData[p.id];
       let orbitalAngle = 0;
 
-      if (p.id !== 'sun' && pData) {
+      if (p.id !== 'sun' && pData && p.id !== 'iss') {
         const L0_rad = (pData.L0 || 0) * Math.PI / 180;
         const w_rad = (pData.w || 0) * Math.PI / 180;
         const e = pData.e || 0;
@@ -780,6 +784,9 @@ export class SolarSystem {
           const textureOffsetRad = (pData.offset || 0) * (Math.PI / 180);
           p.mesh.rotation.y = timeRotation + textureOffsetRad;
         }
+      } else if (p.id === 'iss') {
+        const simulatedDate = new Date(Date.UTC(2000, 0, 1, 12, 0, 0) + simulatedDays * 86400000);
+        this.issTracker.update(simulatedDate, p.moonContainer);
       }
       
       if (p.clouds && pData) {

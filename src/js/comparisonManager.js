@@ -243,7 +243,13 @@ export class ComparisonManager {
     // The camera needs to be far enough so the object fits in the FOV (45 degrees)
     // dist = radius / Math.sin(fov/2)
     const fovRad = (45 / 2) * (Math.PI / 180);
-    const requiredDist = (maxScale * 1.5) / Math.sin(fovRad);
+    let requiredDist = (maxScale * 1.5) / Math.sin(fovRad);
+    
+    const aspect = (this.width / 2) / this.height;
+    if (aspect < 1) {
+      requiredDist /= aspect;
+    }
+
     const cameraDist = Math.max(40, requiredDist);
     
     // Elevate camera slightly so we don't look exactly edge-on (which makes rings invisible)

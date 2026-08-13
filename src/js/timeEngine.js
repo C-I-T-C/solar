@@ -19,6 +19,8 @@ export class TimeEngine {
     
     this.speeds = [
       { label: 'واقعی', value: 1 },
+      { label: '۱ دقیقه/ثانیه', value: 60 },
+      { label: '۱ ساعت/ثانیه', value: 3600 },
       { label: '۱ روز/ثانیه', value: 86400 },
       { label: '۱ هفته/ثانیه', value: 604800 },
       { label: '۱ ماه/ثانیه', value: 2592000 },

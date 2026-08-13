@@ -1378,6 +1378,47 @@ button { font-family: 'Vazirmatn', sans-serif; cursor: pointer; }
 
   /* Lonely text above rail */
   .lonely-text { bottom: 106px; }
+
+  /* Comparison Mode on Mobile */
+  .comparison-header {
+    top: 10px; left: 10px; right: 10px;
+    justify-content: center;
+  }
+  .comparison-header h2 {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  #close-comparison-btn {
+    position: absolute;
+    left: 0;
+    width: 32px; height: 32px;
+    font-size: 1.1rem;
+  }
+  .comparison-panel {
+    padding: 10px;
+  }
+  .comparison-panel.left-panel { padding-right: 15px; }
+  .comparison-panel.right-panel { padding-left: 15px; }
+  .nav-btn {
+    width: 32px; height: 32px;
+  }
+  .nav-btn svg {
+    width: 14px; height: 14px;
+  }
+  .comparison-info {
+    bottom: 20px;
+  }
+  .compare-title {
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+  }
+  .compare-stats {
+    font-size: 0.6rem;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stat-divider { display: none; }
 }
 
 

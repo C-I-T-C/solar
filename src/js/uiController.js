@@ -420,7 +420,14 @@ export class UIController {
       <div class="child-card">
         <div class="child-card-header">
           <span class="child-type-badge">${typeIcon} ${typeLabel}</span>
-          <h3 class="child-card-name">${d.nameFa}</h3>
+          ${childId === 'iss' ? `
+            <style>@keyframes livePulse{0%{opacity:1;}100%{opacity:0.3;}}</style>
+            <span style="background: ${this.solarSystem?.issTracker?.isLoaded ? 'var(--blue, #2979ff)' : '#ff9800'}; color: white; font-size: 0.75em; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; margin-right: 8px;">
+              <span style="width: 6px; height: 6px; background: white; border-radius: 50%; ${this.solarSystem?.issTracker?.isLoaded ? 'animation: livePulse 1s infinite alternate;' : ''}"></span>
+              ${this.solarSystem?.issTracker?.isLoaded ? 'موقعیت زنده' : 'آفلاین'}
+            </span>
+          ` : ''}
+          <h3 class="child-card-name" style="${childId === 'iss' ? 'margin-right: 8px;' : ''}">${d.nameFa}</h3>
           <span class="child-card-en">${d.nameEn.toUpperCase()}</span>
         </div>
         <p class="child-card-bio">${d.bio}</p>
