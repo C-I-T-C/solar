@@ -99,7 +99,9 @@ export class UIController {
       pill.dataset.planetId = id;
       pill.setAttribute('aria-label', planet.nameFa);
       pill.innerHTML = `
-        <div class="pill-icon" style="--pc:${visuals.color};">${visuals.emoji}</div>
+        <div class="pill-icon" style="--pc:${visuals.color};">
+          <div class="orb"></div>
+        </div>
         <span class="pill-name">${visuals.label}</span>
       `;
 
